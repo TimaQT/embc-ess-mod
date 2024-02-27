@@ -4,7 +4,7 @@ import {
   UntypedFormGroup,
   Validators
 } from '@angular/forms';
-import { MatRadioChange } from '@angular/material/radio';
+import { MatLegacyRadioChange as MatRadioChange } from '@angular/material/legacy-radio';
 import { map, startWith, Subscription } from 'rxjs';
 import { TabModel } from 'src/app/core/models/tab.model';
 import { CustomValidationService } from 'src/app/core/services/customValidation.service';

@@ -6,9 +6,9 @@
 @import './variables';
 
 /* Importing Bootstrap SCSS file. */
-@import '~bootstrap/scss/bootstrap';
+@import 'bootstrap/scss/bootstrap';
 
-@import '@angular/material/theming';
+//@import '@angular/material/theming';
 
 // monospace font used for fixed-size text blocks (eg, referral comments)
 // NB: same font as PDF renderer service
@@ -21,12 +21,12 @@
       format('truetype'); /* Safari, Android, iOS */
 }
 
-$custom-typography: mat.define-typography-config(
+$custom-typography: mat.define-legacy-typography-config(
   $font-family: $font-family-sans-serif,
   $body-1: mat.define-typography-level(15px, 1.6, 400)
 );
 
-@include mat.all-component-typographies($custom-typography);
+@include mat.all-legacy-component-typographies($custom-typography);
 
 main {
   padding-bottom: 0px !important;

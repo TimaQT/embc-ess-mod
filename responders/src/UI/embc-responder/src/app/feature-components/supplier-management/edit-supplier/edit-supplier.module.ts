@@ -6,7 +6,7 @@ import { EditSupplierComponent } from './edit-supplier.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from 'src/app/material.module';
 import { SharedModule } from 'src/app/shared/shared.module';
-import { TextMaskModule } from 'angular2-text-mask';
+
 
 @NgModule({
   declarations: [EditSupplierComponent],
@@ -15,8 +15,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     EditSupplierRoutingModule,
     MaterialModule,
     ReactiveFormsModule,
-    SharedModule,
-    TextMaskModule
+    SharedModule
   ]
 })
 export class EditSupplierModule {}

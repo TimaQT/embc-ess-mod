@@ -6,7 +6,6 @@ import { EvacueeNameSearchComponent } from './evacuee-name-search.component';
 import { MaterialModule } from 'src/app/material.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from 'src/app/shared/shared.module';
-import { TextMaskModule } from 'angular2-text-mask';
 
 @NgModule({
   declarations: [EvacueeNameSearchComponent],
@@ -15,8 +14,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     EvacueeNameSearchRoutingModule,
     MaterialModule,
     ReactiveFormsModule,
-    SharedModule,
-    TextMaskModule
+    SharedModule
   ]
 })
 export class EvacueeNameSearchModule {}

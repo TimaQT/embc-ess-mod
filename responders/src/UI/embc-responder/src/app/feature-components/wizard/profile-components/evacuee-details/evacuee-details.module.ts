@@ -5,7 +5,6 @@ import { EvacueeDetailsRoutingModule } from './evacuee-details-routing.module';
 import { EvacueeDetailsComponent } from './evacuee-details.component';
 import { MaterialModule } from 'src/app/material.module';
 import { ReactiveFormsModule } from '@angular/forms';
-import { TextMaskModule } from 'angular2-text-mask';
 
 @NgModule({
   declarations: [EvacueeDetailsComponent],
@@ -13,8 +12,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     CommonModule,
     EvacueeDetailsRoutingModule,
     MaterialModule,
-    ReactiveFormsModule,
-    TextMaskModule
+    ReactiveFormsModule
   ]
 })
 export class EvacueeDetailsModule {}

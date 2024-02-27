@@ -157,7 +157,7 @@
             formControlName="notificationMobile"
             matInput
             placeholder="Mobile Number"
-            [textMask]="{ mask: phoneMask, keepCharPositions: true }"
+            mask="000-000-0000"
             (input)="notificationMobileChange()"
           />
           <mat-error
@@ -203,7 +203,7 @@
             formControlName="notificationConfirmMobile"
             matInput
             placeholder="Confirm Mobile Number"
-            [textMask]="{ mask: phoneMask, keepCharPositions: true }"
+            mask="000-000-0000"
             [errorStateMatcher]="mobileMatcher"
           />
           <mat-error

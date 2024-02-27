@@ -5,7 +5,7 @@ import {
   TestBed,
   tick
 } from '@angular/core/testing';
-import { MatDialogModule } from '@angular/material/dialog';
+import { MatLegacyDialogModule as MatDialogModule } from '@angular/material/legacy-dialog';
 import { RouterTestingModule } from '@angular/router/testing';
 import { OutageService } from 'src/app/feature-components/outage/outage.service';
 import { MockOutageService } from 'src/app/unit-tests/mockOutage.service';

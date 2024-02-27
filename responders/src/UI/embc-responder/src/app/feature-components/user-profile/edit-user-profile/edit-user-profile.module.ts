@@ -5,7 +5,7 @@ import { EditUserProfileRoutingModule } from './edit-user-profile-routing.module
 import { SharedModule } from 'src/app/shared/shared.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { MaterialModule } from 'src/app/material.module';
-import { TextMaskModule } from 'angular2-text-mask';
+
 
 @NgModule({
   declarations: [EditUserProfileComponent],
@@ -14,8 +14,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     EditUserProfileRoutingModule,
     ReactiveFormsModule,
     MaterialModule,
-    SharedModule,
-    TextMaskModule
+    SharedModule
   ]
 })
 export class EditUserProfileModule {}

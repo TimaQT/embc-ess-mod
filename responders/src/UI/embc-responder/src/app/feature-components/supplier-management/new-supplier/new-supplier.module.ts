@@ -6,7 +6,6 @@ import { NewSupplierComponent } from './new-supplier.component';
 import { MaterialModule } from 'src/app/material.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from 'src/app/shared/shared.module';
-import { TextMaskModule } from 'angular2-text-mask';
 
 @NgModule({
   declarations: [NewSupplierComponent],
@@ -15,8 +14,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     NewSupplierRoutingModule,
     MaterialModule,
     ReactiveFormsModule,
-    SharedModule,
-    TextMaskModule
+    SharedModule
   ]
 })
 export class NewSupplierModule {}

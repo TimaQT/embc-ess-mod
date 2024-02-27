@@ -5,7 +5,7 @@ import {
   UntypedFormGroup,
   Validators
 } from '@angular/forms';
-import { MatCheckboxChange } from '@angular/material/checkbox';
+import { MatLegacyCheckboxChange as MatCheckboxChange } from '@angular/material/legacy-checkbox';
 import { SupportReprintReason } from 'src/app/core/api/models';
 import { LoadEvacueeListService } from 'src/app/core/services/load-evacuee-list.service';
 

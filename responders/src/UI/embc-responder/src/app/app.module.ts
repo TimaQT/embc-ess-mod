@@ -1,5 +1,4 @@
 import { BrowserModule } from '@angular/platform-browser';
-import { InjectionToken, NgModule } from '@angular/core';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
@@ -14,6 +13,8 @@ import { NgIdleKeepaliveModule } from '@ng-idle/keepalive';
 import { Compute } from './core/interfaces/compute';
 import { ComputeFeaturesService } from './core/services/compute/computeFeatures.service';
 import { ComputeWizardService } from './core/services/compute/computeWizard.service';
+import { InjectionToken, NgModule } from '@angular/core';
+import { NgxMaskDirective, NgxMaskPipe, provideNgxMask } from 'ngx-mask';
 
 export const computeInterfaceToken = new InjectionToken<Compute>('Compute');
 @NgModule({
@@ -34,7 +35,9 @@ export const computeInterfaceToken = new InjectionToken<Compute>('Compute');
     ApiModule.forRoot({ rootUrl: '' }),
     NgIdleKeepaliveModule.forRoot(),
     ErrorHandlingModule.forRoot(),
-    SharedModule
+    SharedModule,
+    NgxMaskDirective, 
+    NgxMaskPipe
   ],
   providers: [
     DatePipe,
@@ -47,8 +50,9 @@ export const computeInterfaceToken = new InjectionToken<Compute>('Compute');
       provide: computeInterfaceToken,
       useClass: ComputeWizardService,
       multi: true
-    }
+    },
+    provideNgxMask()
   ],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {}

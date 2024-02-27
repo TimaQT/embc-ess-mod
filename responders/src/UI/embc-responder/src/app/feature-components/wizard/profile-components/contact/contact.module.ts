@@ -5,7 +5,6 @@ import { ContactRoutingModule } from './contact-routing.module';
 import { ContactComponent } from './contact.component';
 import { MaterialModule } from 'src/app/material.module';
 import { ReactiveFormsModule } from '@angular/forms';
-import { TextMaskModule } from 'angular2-text-mask';
 
 @NgModule({
   declarations: [ContactComponent],
@@ -13,8 +12,7 @@ import { TextMaskModule } from 'angular2-text-mask';
     CommonModule,
     ContactRoutingModule,
     MaterialModule,
-    ReactiveFormsModule,
-    TextMaskModule
+    ReactiveFormsModule
   ]
 })
 export class ContactModule {}

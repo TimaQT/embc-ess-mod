@@ -7,7 +7,7 @@ import {
   QueryList,
   ViewChildren
 } from '@angular/core';
-import { MatSelect, MatSelectChange } from '@angular/material/select';
+import { MatLegacySelect as MatSelect, MatLegacySelectChange as MatSelectChange } from '@angular/material/legacy-select';
 import { TableFilterValueModel } from 'src/app/core/models/table-filter-value.model';
 import { TableFilterModel } from 'src/app/core/models/table-filter.model';
 

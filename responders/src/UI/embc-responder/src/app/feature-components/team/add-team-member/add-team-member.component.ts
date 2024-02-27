@@ -4,7 +4,7 @@ import {
   UntypedFormBuilder,
   UntypedFormGroup
 } from '@angular/forms';
-import { MatSelectChange } from '@angular/material/select';
+import { MatLegacySelectChange as MatSelectChange } from '@angular/material/legacy-select';
 import { Router } from '@angular/router';
 import {
   MemberLabelDescription,

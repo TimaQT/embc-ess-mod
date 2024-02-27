@@ -6,7 +6,7 @@ import {
   UntypedFormGroup,
   Validators
 } from '@angular/forms';
-import { MatRadioChange } from '@angular/material/radio';
+import { MatLegacyRadioChange as MatRadioChange } from '@angular/material/legacy-radio';
 import { Router } from '@angular/router';
 import { CustomValidationService } from 'src/app/core/services/customValidation.service';
 import * as globalConst from '../../../../core/services/global-constants';

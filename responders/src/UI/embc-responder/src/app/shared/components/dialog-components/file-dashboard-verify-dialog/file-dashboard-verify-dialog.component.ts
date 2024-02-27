@@ -5,7 +5,7 @@ import {
   UntypedFormGroup,
   Validators
 } from '@angular/forms';
-import { MatRadioChange } from '@angular/material/radio';
+import { MatLegacyRadioChange as MatRadioChange } from '@angular/material/legacy-radio';
 import { EvacuationFileHouseholdMember } from 'src/app/core/api/models';
 import { DialogContent } from 'src/app/core/models/dialog-content.model';
 import { EvacueeSessionService } from 'src/app/core/services/evacuee-session.service';

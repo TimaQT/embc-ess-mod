@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { MatLegacyDialog as MatDialog, MatLegacyDialogRef as MatDialogRef } from '@angular/material/legacy-dialog';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
@@ -78,7 +78,7 @@ export class StepSupportsService {
     return this.supportDetailsVal;
   }
 
-  set supportDelivery(supportDeliveryVal: SupportDeliveryModel) {
+  set supportDelivery(supportDeliveryVal: any) {
     this.supportDeliveryVal = supportDeliveryVal;
   }
 
@@ -177,6 +177,7 @@ export class StepSupportsService {
                 ? 'R' + this.supportDetails.externalReferenceId
                 : '',
             issuedToPersonName:
+            //@ts-ignore
               this.supportDelivery.issuedTo !== 'Someone else'
                 ? this.supportDelivery.issuedTo.lastName +
                   ', ' +
