@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
-import { CanDeactivate } from '@angular/router';
+
 import { FileSubmissionComponent } from '../../feature-components/file-submission/file-submission.component';
 import { DialogComponent } from '../components/dialog/dialog.component';
 import * as globalConst from '../services/globalConstants';
@@ -8,7 +8,7 @@ import { InformationDialogComponent } from '../components/dialog-components/info
 
 @Injectable({ providedIn: 'root' })
 export class DisableBackGuard
-  implements CanDeactivate<FileSubmissionComponent>
+  
 {
   constructor(public dialog: MatDialog) {}
 

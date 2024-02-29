@@ -12,6 +12,7 @@ import { APP_BASE_HREF, PlatformLocation } from '@angular/common';
 import { NgIdleKeepaliveModule } from '@ng-idle/keepalive';
 import { OutageBannerComponent } from './sharedModules/outage-components/outage-banner/outage-banner.component';
 import { OutageDialogComponent } from './sharedModules/outage-components/outage-dialog/outage-dialog.component';
+import { NgxMaskDirective, NgxMaskPipe, provideEnvironmentNgxMask } from 'ngx-mask';
 
 @NgModule({
   declarations: [AppComponent, OutageBannerComponent, OutageDialogComponent],
@@ -31,7 +32,8 @@ import { OutageDialogComponent } from './sharedModules/outage-components/outage-
           url.toLowerCase().includes('/api/') &&
           !url.toLowerCase().endsWith('/configuration')
       }
-    })
+    }),
+    NgxMaskDirective, NgxMaskPipe
   ],
   providers: [
     {
@@ -44,7 +46,8 @@ import { OutageDialogComponent } from './sharedModules/outage-components/outage-
         return result;
       },
       deps: [PlatformLocation]
-    }
+    },
+    provideEnvironmentNgxMask()
   ],
   bootstrap: [AppComponent]
 })

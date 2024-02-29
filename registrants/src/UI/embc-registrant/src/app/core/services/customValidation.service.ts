@@ -14,10 +14,10 @@ export class CustomValidationService {
         let validationError = null;
         const dateOfBirth = control.value;
         const day = dateOfBirth.substring(0, 2);
-        const month = dateOfBirth.substring(3, 5);
-        const year = dateOfBirth.substring(6);
+        const month = dateOfBirth.substring(2,4);
+        const year = dateOfBirth.substring(4);
         if (dateOfBirth !== '') {
-          if (!moment(dateOfBirth, 'MM/DD/YYYY', true).isValid()) {
+          if (!moment(dateOfBirth, 'MMDDYYYY', true).isValid()) {
             validationError = { invalidDate: true };
           } else if (moment().diff(moment(dateOfBirth, 'MM-DD-YYYY')) <= 0) {
             validationError = { futureDate: true };

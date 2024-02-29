@@ -1,3 +1,4 @@
+import { IConfig, NgxMaskDirective, NgxMaskPipe, provideEnvironmentNgxMask } from 'ngx-mask';
 import { Component, OnInit, NgModule, Inject, OnDestroy } from '@angular/core';
 import {
   UntypedFormBuilder,
@@ -21,7 +22,6 @@ import {
 import { FormCreationService } from 'src/app/core/services/formCreation.service';
 import { Subscription } from 'rxjs';
 import { DirectivesModule } from '../../../../core/directives/directives.module';
-import { TextMaskModule } from 'angular2-text-mask';
 import { CustomValidationService } from 'src/app/core/services/customValidation.service';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { MatRadioChange, MatRadioModule } from '@angular/material/radio';
@@ -166,9 +166,12 @@ export default class ContactInfoComponent implements OnInit, OnDestroy {
     ReactiveFormsModule,
     MatCheckboxModule,
     DirectivesModule,
-    TextMaskModule,
+    NgxMaskDirective, 
+    NgxMaskPipe,
+    
     MatRadioModule
   ],
+  providers: [provideEnvironmentNgxMask()],
   declarations: [ContactInfoComponent]
 })
 class ContactInfoModule {}
