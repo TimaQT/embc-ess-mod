@@ -1,9 +1,4 @@
-import {
-  UntypedFormControl,
-  Validators,
-  UntypedFormBuilder,
-  UntypedFormGroup
-} from '@angular/forms';
+import { UntypedFormControl, Validators, UntypedFormBuilder, UntypedFormGroup } from '@angular/forms';
 import { CustomValidationService } from '../services/customValidation.service';
 import { RegAddress } from './address';
 import * as globalConst from '../services/globalConstants';
@@ -22,7 +17,7 @@ export class RestrictionForm {
   }
 }
 
-export class PersonDetails {
+export class PersonDetailsModel {
   firstName: string;
   lastName: string;
   preferredName?: string;
@@ -31,17 +26,8 @@ export class PersonDetails {
   dateOfBirth: string;
   sameLastNameCheck?: boolean;
   isPrimaryRegistrant?: boolean;
-
-  constructor(
-    firstName?: string,
-    lastName?: string,
-    preferredName?: string,
-    initials?: string,
-    gender?: string,
-    dateOfBirth?: string,
-    sameLastNameCheck?: boolean,
-    isPrimaryRegistrant?: boolean
-  ) {}
+  id?: string;
+  isMinor: boolean;
 }
 
 export class PersonDetailsForm {
@@ -52,10 +38,7 @@ export class PersonDetailsForm {
   gender = new UntypedFormControl();
   dateOfBirth = new UntypedFormControl();
 
-  constructor(
-    personDetail: PersonDetails,
-    customValidator: CustomValidationService
-  ) {
+  constructor(personDetail: PersonDetailsModel, customValidator: CustomValidationService) {
     if (personDetail.firstName) {
       this.firstName.setValue(personDetail.firstName);
     }
@@ -73,10 +56,7 @@ export class PersonDetailsForm {
     this.gender.setValidators([Validators.required]);
 
     this.dateOfBirth.setValue(personDetail.dateOfBirth);
-    this.dateOfBirth.setValidators([
-      Validators.required,
-      customValidator.dateOfBirthValidator().bind(customValidator)
-    ]);
+    this.dateOfBirth.setValidators([Validators.required, customValidator.dateOfBirthValidator().bind(customValidator)]);
   }
 }
 
@@ -99,10 +79,7 @@ export class ContactDetailsForm {
   hideEmailRequired = new UntypedFormControl(false);
   hidePhoneRequired = new UntypedFormControl(false);
 
-  constructor(
-    contactDetails: ContactDetails,
-    customValidator: CustomValidationService
-  ) {
+  constructor(contactDetails: ContactDetails, customValidator: CustomValidationService) {
     this.showContacts.setValue(contactDetails.showContacts);
     this.showContacts.setValidators([Validators.required]);
 
@@ -112,9 +89,7 @@ export class ContactDetailsForm {
       customValidator
         .conditionalValidation(
           () =>
-            (this.phone.value === '' ||
-              this.phone.value === undefined ||
-              this.phone.value === null) &&
+            (this.phone.value === '' || this.phone.value === undefined || this.phone.value === null) &&
             this.showContacts.value === true,
           Validators.required
         )
@@ -142,9 +117,7 @@ export class ContactDetailsForm {
       customValidator
         .conditionalValidation(
           () =>
-            (this.email.value === '' ||
-              this.email.value === undefined ||
-              this.email.value === null) &&
+            (this.email.value === '' || this.email.value === undefined || this.email.value === null) &&
             this.showContacts.value === true,
           Validators.required
         )
@@ -179,39 +152,21 @@ export class SecurityQuestionsForm {
         question1: [securityQuestions.question1 ?? '', [Validators.required]],
         answer1: [
           securityQuestions.answer1 ?? '',
-          [
-            Validators.minLength(3),
-            Validators.maxLength(50),
-            customValidator.whitespaceValidator()
-          ]
+          [Validators.minLength(3), Validators.maxLength(50), customValidator.whitespaceValidator()]
         ],
         question2: [securityQuestions.question2 ?? '', [Validators.required]],
         answer2: [
           securityQuestions.answer2 ?? '',
-          [
-            Validators.minLength(3),
-            Validators.maxLength(50),
-            customValidator.whitespaceValidator()
-          ]
+          [Validators.minLength(3), Validators.maxLength(50), customValidator.whitespaceValidator()]
         ],
         question3: [securityQuestions.question3 ?? '', [Validators.required]],
         answer3: [
           securityQuestions.answer3 ?? '',
-          [
-            Validators.minLength(3),
-            Validators.maxLength(50),
-            customValidator.whitespaceValidator()
-          ]
+          [Validators.minLength(3), Validators.maxLength(50), customValidator.whitespaceValidator()]
         ]
       },
       {
-        validators: [
-          customValidator.uniqueValueValidator([
-            'question1',
-            'question2',
-            'question3'
-          ])
-        ]
+        validators: [customValidator.uniqueValueValidator(['question1', 'question2', 'question3'])]
       }
     );
   }
@@ -234,11 +189,7 @@ export class AddressForm {
   isBcMailingAddress = new UntypedFormControl();
   mailingAddress: UntypedFormGroup;
 
-  constructor(
-    address: Address,
-    builder: UntypedFormBuilder,
-    customValidator: CustomValidationService
-  ) {
+  constructor(address: Address, builder: UntypedFormBuilder, customValidator: CustomValidationService) {
     this.address = builder.group({
       addressLine1: ['', [Validators.required]],
       addressLine2: [''],
@@ -250,24 +201,15 @@ export class AddressForm {
             .conditionalValidation(
               () =>
                 this.address.get('country').value !== null &&
-                (this.compareObjects(
-                  this.address.get('country').value,
-                  globalConst.defaultCountry
-                ) ||
-                  this.compareObjects(
-                    this.address.get('country').value,
-                    globalConst.usDefaultObject
-                  )),
+                (this.compareObjects(this.address.get('country').value, globalConst.defaultCountry) ||
+                  this.compareObjects(this.address.get('country').value, globalConst.usDefaultObject)),
               Validators.required
             )
             .bind(customValidator)
         ]
       ],
       country: ['', [Validators.required]],
-      postalCode: [
-        '',
-        [customValidator.postalValidation().bind(customValidator)]
-      ]
+      postalCode: ['', [customValidator.postalValidation().bind(customValidator)]]
     });
 
     this.mailingAddress = builder.group({
@@ -281,24 +223,15 @@ export class AddressForm {
             .conditionalValidation(
               () =>
                 this.mailingAddress.get('country').value !== null &&
-                (this.compareObjects(
-                  this.mailingAddress.get('country').value,
-                  globalConst.defaultCountry
-                ) ||
-                  this.compareObjects(
-                    this.mailingAddress.get('country').value,
-                    globalConst.usDefaultObject
-                  )),
+                (this.compareObjects(this.mailingAddress.get('country').value, globalConst.defaultCountry) ||
+                  this.compareObjects(this.mailingAddress.get('country').value, globalConst.usDefaultObject)),
               Validators.required
             )
             .bind(customValidator)
         ]
       ],
       country: ['', [Validators.required]],
-      postalCode: [
-        '',
-        [customValidator.postalValidation().bind(customValidator)]
-      ]
+      postalCode: ['', [customValidator.postalValidation().bind(customValidator)]]
     });
 
     this.isBcAddress.setValue(address.isBcAddress);
@@ -310,10 +243,7 @@ export class AddressForm {
     this.isBcMailingAddress.setValue(address.isBcMailingAddress);
     this.isBcMailingAddress.setValidators([
       customValidator
-        .conditionalValidation(
-          () => this.isNewMailingAddress.value === 'No',
-          Validators.required
-        )
+        .conditionalValidation(() => this.isNewMailingAddress.value === 'No', Validators.required)
         .bind(customValidator)
     ]);
   }

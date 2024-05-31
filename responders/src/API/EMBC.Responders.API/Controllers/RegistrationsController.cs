@@ -170,6 +170,20 @@ namespace EMBC.Responders.API.Controllers
             var inviteId = await messagingClient.Send(inviteRequest);
             return Ok(inviteId);
         }
+
+        [HttpPost("registrants/{registrantId}/access")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> AuditRegistrantAccess(string registrantId, AuditAccessRequest request)
+        {
+            await messagingClient.Send(new RecordAuditAccessCommand
+            {
+                TeamMemberId = currentUserId,
+                RegistrantId = registrantId,
+                AccessReasonId = request.AccessReasonId
+            });
+            return Ok();
+        }
     }
 
     public class RegistrationResult
@@ -257,6 +271,12 @@ namespace EMBC.Responders.API.Controllers
         public string Email { get; set; }
     }
 
+    public record AuditAccessRequest
+    {
+        [Required]
+        public int AccessReasonId { get; set; }
+    }
+
     public class RegistrationsMapping : Profile
     {
         public RegistrationsMapping()
@@ -299,6 +319,8 @@ namespace EMBC.Responders.API.Controllers
                 .ForMember(d => d.LastModified, opts => opts.MapFrom(s => s.ModifiedOn))
                 .ForMember(d => d.LastModifiedUserId, opts => opts.Ignore())
                 .ForMember(d => d.LastModifiedDisplayName, opts => opts.Ignore())
+                .ForMember(d => d.LastLogin, opts => opts.Ignore())
+                .ForMember(d => d.HomeAddress, opts => opts.Ignore())
                 ;
 
             CreateMap<ESS.Shared.Contracts.Events.RegistrantProfile, RegistrantProfile>()

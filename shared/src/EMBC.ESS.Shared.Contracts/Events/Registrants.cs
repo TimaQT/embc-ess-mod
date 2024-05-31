@@ -49,6 +49,14 @@ namespace EMBC.ESS.Shared.Contracts.Events
         public string LoggedInUserId { get; set; }
     }
 
+    public class RecordAuditAccessCommand : Command
+    {
+        public string TeamMemberId { get; set; }
+        public string? RegistrantId { get; set; }
+        public string? EvacuationFileNumber { get; set; }
+        public int AccessReasonId { get; set; }
+    }
+
     public class RegistrantProfile
     {
         public string Id { get; set; }
@@ -69,11 +77,13 @@ namespace EMBC.ESS.Shared.Contracts.Events
         public string Phone { get; set; }
         public Address PrimaryAddress { get; set; }
         public Address MailingAddress { get; set; }
+        public Address HomeAddress { get; set; }
         public bool RestrictedAccess { get; set; }
         public IEnumerable<SecurityQuestion> SecurityQuestions { get; set; } = Array.Empty<SecurityQuestion>();
         public bool? AuthenticatedUser { get; set; }
         public bool? VerifiedUser { get; set; }
         public bool IsMinor { get; set; }
+        public DateTimeOffset? LastLogin { get; set; }
     }
 
     public class Address

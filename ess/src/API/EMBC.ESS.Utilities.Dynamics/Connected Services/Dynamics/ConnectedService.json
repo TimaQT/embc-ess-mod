@@ -11,7 +11,7 @@
     "ExcludedOperationImports": [],
     "ExcludedBoundOperations": [],
     "ServiceName": "Dynamics",
-    "Endpoint": "https://emcr-ess-v3.dev.jag.gov.bc.ca/api/data/v9.0/$metadata",
+    "Endpoint": "https://emcr-ess-v3.dev.jag.gov.bc.ca/api/data/v9.1/$metadata",
     "EdmxVersion": {
       "Major": 4,
       "Minor": 0,

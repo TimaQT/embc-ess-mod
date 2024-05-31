@@ -1,7 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.IO.Abstractions;
-using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.Json;
@@ -9,6 +7,7 @@ using System.Threading.Tasks;
 using EMBC.Suppliers.API.ConfigurationModule.Models;
 using EMBC.Suppliers.API.ConfigurationModule.Models.Dynamics;
 using EMBC.Suppliers.API.DynamicsModule;
+using EMBC.Suppliers.API.Services;
 using EMBC.Suppliers.API.SubmissionModule.Models;
 using EMBC.Suppliers.API.SubmissionModule.Models.Dynamics;
 using EMBC.Suppliers.API.Utilities;
@@ -139,7 +138,7 @@ namespace EMBC.Suppliers.API
             {
                 options.Path = "/api/swagger/{documentName}/swagger.json";
             });
-            services.Configure<SwaggerUi3Settings>(options =>
+            services.Configure<SwaggerUiSettings>(options =>
             {
                 options.Path = "/api/swagger";
                 options.DocumentPath = "/api/swagger/{documentName}/swagger.json";
@@ -176,12 +175,19 @@ namespace EMBC.Suppliers.API
                     GetAccessToken = async (s) => await tokenProvider.AcquireToken()
                 });
             });
+
+            services.AddHttpClient("captcha");
+            services.Configure<CaptchaVerificationServiceOptions>(options =>
+            {
+                configuration.GetSection("captcha").Bind(options);
+            });
+            services.AddTransient<ICaptchaVerificationService, CaptchaVerificationService>();
         }
 
         private IPNetwork ParseNetworkFromString(string network)
         {
             var networkParts = network.Trim().Split('/');
-            var prefix = IPAddress.Parse(networkParts[0]);
+            var prefix = System.Net.IPAddress.Parse(networkParts[0]);
             var length = int.Parse(networkParts[1]);
             return new IPNetwork(prefix, length);
         }
@@ -214,7 +220,7 @@ namespace EMBC.Suppliers.API
             app.UseForwardedHeaders();
 
             app.UseOpenApi();
-            app.UseSwaggerUi3();
+            app.UseSwaggerUi();
 
             app.UseRouting();
 
@@ -231,7 +237,7 @@ namespace EMBC.Suppliers.API
                     var name = Assembly.GetEntryAssembly()?.GetName().Name;
                     var version = Environment.GetEnvironmentVariable("VERSION");
                     ctx.Response.ContentType = "application/json";
-                    ctx.Response.StatusCode = (int)HttpStatusCode.OK;
+                    ctx.Response.StatusCode = (int)System.Net.HttpStatusCode.OK;
                     await ctx.Response.WriteAsync(JsonSerializer.Serialize(new[]
                     {
                         new VersionInformation { name = name ?? null!, version = version == null ? null : Version.Parse(version) }
@@ -244,7 +250,7 @@ namespace EMBC.Suppliers.API
         private static LogEventLevel ExcludeHealthChecks(HttpContext ctx, double _, Exception ex) =>
         ex != null
             ? LogEventLevel.Error
-            : ctx.Response.StatusCode >= (int)HttpStatusCode.InternalServerError
+            : ctx.Response.StatusCode >= (int)System.Net.HttpStatusCode.InternalServerError
                 ? LogEventLevel.Error
                 : ctx.Request.Path.StartsWithSegments("/hc", StringComparison.InvariantCultureIgnoreCase)
                     ? LogEventLevel.Verbose

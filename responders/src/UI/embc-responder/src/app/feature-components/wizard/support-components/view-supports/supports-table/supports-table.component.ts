@@ -11,8 +11,20 @@ import {
   ViewChild
 } from '@angular/core';
 import { MatPaginator } from '@angular/material/paginator';
-import { MatSort } from '@angular/material/sort';
-import { MatTableDataSource } from '@angular/material/table';
+import { MatSort, MatSortHeader } from '@angular/material/sort';
+import {
+  MatTableDataSource,
+  MatTable,
+  MatColumnDef,
+  MatHeaderCellDef,
+  MatHeaderCell,
+  MatCellDef,
+  MatCell,
+  MatHeaderRowDef,
+  MatHeaderRow,
+  MatRowDef,
+  MatRow
+} from '@angular/material/table';
 import {
   Support,
   Referral,
@@ -25,20 +37,41 @@ import {
   SupportCategory,
   ClothingSupport,
   IncidentalsSupport,
-  FoodGroceriesSupport
+  FoodGroceriesSupport,
+  LodgingAllowanceSupport
 } from 'src/app/core/api/models';
 import { TableFilterValueModel } from 'src/app/core/models/table-filter-value.model';
 import { LoadEvacueeListService } from 'src/app/core/services/load-evacuee-list.service';
 import * as globalConst from '../../../../../core/services/global-constants';
+import { AppLoaderComponent } from '../../../../../shared/components/app-loader/app-loader.component';
+import { NgClass, DecimalPipe, DatePipe } from '@angular/common';
 
 @Component({
   selector: 'app-supports-table',
   templateUrl: './supports-table.component.html',
-  styleUrls: ['./supports-table.component.scss']
+  styleUrls: ['./supports-table.component.scss'],
+  standalone: true,
+  imports: [
+    MatTable,
+    MatSort,
+    MatColumnDef,
+    MatHeaderCellDef,
+    MatHeaderCell,
+    MatSortHeader,
+    MatCellDef,
+    MatCell,
+    NgClass,
+    MatHeaderRowDef,
+    MatHeaderRow,
+    MatRowDef,
+    MatRow,
+    AppLoaderComponent,
+    MatPaginator,
+    DecimalPipe,
+    DatePipe
+  ]
 })
-export class SupportsTableComponent
-  implements OnInit, AfterViewInit, OnChanges
-{
+export class SupportsTableComponent implements OnInit, AfterViewInit, OnChanges {
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
   @Input() supportList: Support[];
@@ -46,15 +79,7 @@ export class SupportsTableComponent
   @Input() filterTerm: TableFilterValueModel;
   @Output() clickedRow = new EventEmitter<Support>(null);
 
-  displayedColumns: string[] = [
-    'id',
-    'category',
-    'from',
-    'to',
-    'supplierName',
-    'totalAmount',
-    'status'
-  ];
+  displayedColumns: string[] = ['id', 'category', 'from', 'to', 'supplierName', 'totalAmount', 'status'];
   dataSource = new MatTableDataSource();
   color = '#169BD5';
   data: any;
@@ -79,16 +104,14 @@ export class SupportsTableComponent
           case 'supplierName':
             if (item.method === SupportMethod.ETransfer) {
               return item.method.toLowerCase();
-            } else if (
-              item.subCategory === SupportSubCategory.Lodging_Billeting
-            ) {
+            } else if (item.subCategory === SupportSubCategory.Lodging_Billeting) {
               return (item as LodgingBilletingSupport).hostName.toLowerCase();
             } else if (item.subCategory === SupportSubCategory.Lodging_Group) {
               return (item as LodgingGroupSupport).facilityName.toLowerCase();
+            } else if (item.subCategory === SupportSubCategory.Lodging_Allowance) {
+              return (item.supportDelivery as Referral).issuedToPersonName.toLowerCase();
             } else {
-              return (
-                item.supportDelivery as Referral
-              ).supplierName.toLowerCase();
+              return (item.supportDelivery as Referral).supplierName.toLowerCase();
             }
           default:
             return item[property];
@@ -140,19 +163,11 @@ export class SupportsTableComponent
       const possibleValues = this.supportStatus
         ?.filter((s) => s.description === searchString.value)
         .map((a) => a.value.trim().toLowerCase());
-      if (
-        possibleValues.length === 0 ||
-        possibleValues.includes(data.status.trim().toLowerCase())
-      ) {
+      if (possibleValues.length === 0 || possibleValues.includes(data.status.trim().toLowerCase())) {
         return true;
       }
     } else if (searchString.type === 'type') {
-      if (
-        data.category
-          .trim()
-          .toLowerCase()
-          .indexOf(searchString.value.trim().toLowerCase()) !== -1
-      ) {
+      if (data.category.trim().toLowerCase().indexOf(searchString.value.trim().toLowerCase()) !== -1) {
         return true;
       }
     }
@@ -193,6 +208,8 @@ export class SupportsTableComponent
       return (element as LodgingBilletingSupport).hostName;
     } else if (element.subCategory === SupportSubCategory.Lodging_Group) {
       return (element as LodgingGroupSupport).facilityName;
+    } else if (element.subCategory === SupportSubCategory.Lodging_Allowance) {
+      return (element.supportDelivery as Referral).issuedToPersonName;
     } else {
       return (element.supportDelivery as Referral).supplierName;
     }
@@ -208,21 +225,15 @@ export class SupportsTableComponent
       case SupportCategory.Clothing: {
         const clothingSupport = element as ClothingSupport;
         if (clothingSupport.extremeWinterConditions) {
-          rate =
-            globalConst.extremeConditions.rate *
-            clothingSupport.includedHouseholdMembers.length;
+          rate = globalConst.extremeConditions.rate * clothingSupport.includedHouseholdMembers.length;
         } else {
-          rate =
-            globalConst.normalConditions.rate *
-            clothingSupport.includedHouseholdMembers.length;
+          rate = globalConst.normalConditions.rate * clothingSupport.includedHouseholdMembers.length;
         }
         return clothingSupport.totalAmount > rate;
       }
       case SupportCategory.Incidentals: {
         const incidentalsSupport = element as IncidentalsSupport;
-        rate =
-          globalConst.incidentals.rate *
-          incidentalsSupport.includedHouseholdMembers.length;
+        rate = globalConst.incidentals.rate * incidentalsSupport.includedHouseholdMembers.length;
         return incidentalsSupport.totalAmount > rate;
       }
       case SupportCategory.Food: {

@@ -2,7 +2,6 @@
 
 namespace EMBC.Utilities.Messaging
 {
-    [Serializable]
     public class ServerException : Exception
     {
         public ServerException(string type, string message) : base(message)
@@ -10,11 +9,7 @@ namespace EMBC.Utilities.Messaging
             Type = type;
         }
 
-        protected ServerException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
-
-        public string Type { get; } = string.Empty;
+        public string Type { get; }
 
         public override string ToString()
         {

@@ -17,7 +17,7 @@ namespace EMBC.Tests.Integration.ESS.Managers.Events
 
         private async Task<EvacuationFile> GetEvacuationFileById(string fileId) => await TestHelper.GetEvacuationFileById(manager, fileId) ?? null!;
 
-        private RegistrantProfile CreateNewTestRegistrantProfile() => TestHelper.CreateRegistrantProfile(TestData.TestPrefix);
+        private RegistrantProfile CreateNewTestRegistrantProfile() => TestHelper.CreateRegistrantProfile();
 
         public RegistrantTests(ITestOutputHelper output, DynamicsWebAppFixture fixture) : base(output, fixture)
         {
@@ -35,11 +35,11 @@ namespace EMBC.Tests.Integration.ESS.Managers.Events
 
             var actualRegistrant = (await GetRegistrantByUserId(newProfileBceId)).ShouldNotBeNull();
             actualRegistrant.Id.ShouldBe(id);
-            actualRegistrant.FirstName.ShouldStartWith(TestData.TestPrefix);
-            actualRegistrant.LastName.ShouldStartWith(TestData.TestPrefix);
-            actualRegistrant.Email.ShouldStartWith(TestData.TestPrefix);
-            actualRegistrant.PrimaryAddress.AddressLine1.ShouldStartWith(TestData.TestPrefix);
-            actualRegistrant.MailingAddress.AddressLine1.ShouldStartWith(TestData.TestPrefix);
+            actualRegistrant.FirstName.ShouldBe(newRegistrant.FirstName);
+            actualRegistrant.LastName.ShouldBe(newRegistrant.LastName);
+            actualRegistrant.Email.ShouldBe(newRegistrant.Email);
+            actualRegistrant.PrimaryAddress.AddressLine1.ShouldBe(newRegistrant.PrimaryAddress.AddressLine1);
+            actualRegistrant.MailingAddress.AddressLine1.ShouldBe(newRegistrant.MailingAddress.AddressLine1);
         }
 
         [Fact]
@@ -280,6 +280,77 @@ namespace EMBC.Tests.Integration.ESS.Managers.Events
 
             await Should.ThrowAsync<NotFoundException>(manager.Handle(new ProcessRegistrantInviteCommand { InviteId = firstInviteId, LoggedInUserId = userId }));
             await Should.NotThrowAsync(manager.Handle(new ProcessRegistrantInviteCommand { InviteId = secondInviteId, LoggedInUserId = userId }));
+        }
+
+        [Fact]
+        public async Task NewBcscProfile_HomeAddress_Geocoded()
+        {
+            var newRegistrant = CreateNewTestRegistrantProfile();
+            newRegistrant.UserId = Guid.NewGuid().ToString("N").Substring(0, 10);
+            newRegistrant.HomeAddress = new Address
+            {
+                AddressLine1 = "100 Main st.",
+                City = "Vancouver",
+                StateProvince = "BC"
+            };
+
+            var registrantId = await manager.Handle(new SaveRegistrantCommand { Profile = newRegistrant });
+
+            var evacueesRepo = Services.GetRequiredService<EMBC.ESS.Resources.Evacuees.IEvacueesRepository>();
+            var evacuee = (await evacueesRepo.Query(new EMBC.ESS.Resources.Evacuees.EvacueeQuery { EvacueeId = registrantId })).Items.ShouldHaveSingleItem();
+            var homeAddress = (evacuee.GeocodedHomeAddress?.Address).ShouldNotBeNull();
+            homeAddress.AddressLine1.ShouldBe(newRegistrant.HomeAddress.AddressLine1);
+            homeAddress.City.ShouldBe(newRegistrant.HomeAddress.City);
+            homeAddress.StateProvince.ShouldBe(newRegistrant.HomeAddress.StateProvince);
+            var geocode = (evacuee.GeocodedHomeAddress?.Geocode).ShouldNotBeNull();
+            geocode.Coordinates.ShouldNotBeNull();
+            geocode.ResolvedAddress.ShouldNotBeNull();
+            geocode.Accuracy.ShouldBeGreaterThan(0);
+        }
+
+        [Fact]
+        public async Task ExistingBcscProfile_HomeAddress_Updated()
+        {
+            var registrant = CreateNewTestRegistrantProfile();
+            registrant.UserId = Guid.NewGuid().ToString("N").Substring(0, 10);
+            registrant.HomeAddress = new Address
+            {
+                AddressLine1 = "100 Main st.",
+                City = "Vancouver",
+                StateProvince = "BC"
+            };
+
+            var registrantId = await manager.Handle(new SaveRegistrantCommand { Profile = registrant });
+
+            registrant.HomeAddress = new Address
+            {
+                AddressLine1 = "100 Douglas st.",
+                City = "Victoria",
+                StateProvince = "BC"
+            };
+
+            await manager.Handle(new SaveRegistrantCommand { Profile = registrant });
+
+            var evacueesRepo = Services.GetRequiredService<EMBC.ESS.Resources.Evacuees.IEvacueesRepository>();
+            var evacuee = (await evacueesRepo.Query(new EMBC.ESS.Resources.Evacuees.EvacueeQuery { EvacueeId = registrantId })).Items.ShouldHaveSingleItem();
+            var homeAddress = (evacuee.GeocodedHomeAddress?.Address).ShouldNotBeNull();
+            homeAddress.AddressLine1.ShouldBe(registrant.HomeAddress.AddressLine1);
+            homeAddress.City.ShouldBe(registrant.HomeAddress.City);
+            homeAddress.StateProvince.ShouldBe(registrant.HomeAddress.StateProvince);
+        }
+
+        [Fact]
+        public async Task CanAuditRegistrantAccess()
+        {
+            await Should.NotThrowAsync(async () =>
+            {
+                await manager.Handle(new RecordAuditAccessCommand
+                {
+                    TeamMemberId = TestData.Tier4TeamMemberId,
+                    AccessReasonId = 174360000,
+                    RegistrantId = TestData.ContactId
+                });
+            });
         }
     }
 }

@@ -28,6 +28,8 @@ namespace EMBC.Registrants.API.Mappers
                 .ForMember(d => d.CreatedByUserId, opts => opts.Ignore())
                 .ForMember(d => d.LastModifiedDisplayName, opts => opts.Ignore())
                 .ForMember(d => d.LastModifiedUserId, opts => opts.Ignore())
+                .ForMember(d => d.LastLogin, opts => opts.Ignore())
+                .ForMember(d => d.HomeAddress, opts => opts.Ignore())
                 .ReverseMap()
 
                 .ForMember(d => d.IsMailingAddressSameAsPrimaryAddress, opts => opts.MapFrom(s =>
@@ -52,6 +54,7 @@ namespace EMBC.Registrants.API.Mappers
                 .ForMember(d => d.CompletedOn, opts => opts.MapFrom(s => DateTime.UtcNow))
                 .ForMember(d => d.Notes, opts => opts.Ignore())
                 .ForMember(d => d.CompletedBy, opts => opts.Ignore())
+                .ForMember(d => d.TaskNumber, opts => opts.Ignore())
              ;
 
             CreateMap<ESS.Shared.Contracts.Events.NeedsAssessment, NeedsAssessment>()
@@ -106,7 +109,7 @@ namespace EMBC.Registrants.API.Mappers
                 .ForMember(d => d.IsRestricted, opts => opts.MapFrom(s => s.RestrictedAccess))
                 .ForMember(d => d.SecretPhrase, opts => opts.MapFrom(s => s.SecurityPhrase))
                 .ForMember(d => d.SecretPhraseEdited, opts => opts.MapFrom(s => false))
-                .ForMember(d => d.LastModified, opts => opts.Ignore())
+                .ForMember(d => d.LastModified, opts => opts.MapFrom(s => s.NeedsAssessment.CompletedOn))
                 ;
 
             CreateMap<ESS.Shared.Contracts.Events.Support, Support>()
@@ -182,6 +185,38 @@ namespace EMBC.Registrants.API.Mappers
                 ;
 
             CreateMap<ESS.Shared.Contracts.Events.TransportationTaxiSupport, TransportationTaxiSupport>()
+                ;
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.DraftSelfServeSupportQueryResponse, DraftSupports>()
+                ;
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeSupport, SelfServeSupport>()
+                .IncludeAllDerived()
+                .ReverseMap()
+                .IncludeAllDerived();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeClothingSupport, SelfServeClothingSupport>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeIncidentalsSupport, SelfServeIncidentalsSupport>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeShelterAllowanceSupport, SelfServeShelterAllowanceSupport>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeFoodGroceriesSupport, SelfServeFoodGroceriesSupport>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeFoodRestaurantSupport, SelfServeFoodRestaurantSupport>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SupportDayMeals, SupportDayMeals>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.ETransferDetails, ETransferDetails>()
+                .ReverseMap();
+
+            CreateMap<ESS.Shared.Contracts.Events.SelfServe.SelfServeSupportSetting, SelfServeSupportSetting>()
                 ;
         }
     }

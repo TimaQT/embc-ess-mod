@@ -1,4 +1,5 @@
-﻿using EMBC.ESS.Shared.Contracts.Reports;
+﻿using System;
+using EMBC.ESS.Shared.Contracts.Reports;
 using EMBC.Utilities.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,36 +19,30 @@ namespace EMBC.Tests.Integration.ESS.Managers
         {
             var reportId = await messagingClient.Send(new RequestEvacueeReportCommand
             {
-                TaskNumber = "1234",
+                //TaskNumber = "1234",
                 //FileId = "101010",
                 //EvacuatedFrom = "9e6adfaf-9f97-ea11-b813-005056830319",
                 //EvacuatedTo = "9e6adfaf-9f97-ea11-b813-005056830319",
                 //IncludePersonalInfo = false,
-                //From = DateTime.UtcNow.AddDays(-1),
-                //To = DateTime.UtcNow,
+                From = DateTime.UtcNow.AddDays(-30),
+                To = DateTime.UtcNow,
             });
 
             reportId.ShouldNotBeEmpty();
 
-            var success = false;
+            ReportQueryResult result = null;
             for (int attempt = 0; attempt < 30; attempt++)
             {
-                try
+                result = await messagingClient.Send(new EvacueeReportQuery { ReportRequestId = reportId });
+                if (!result.Ready)
                 {
-                    var report = await messagingClient.Send(new EvacueeReportQuery { ReportRequestId = reportId });
-                    report.ShouldNotBeNull().Content.ShouldNotBeEmpty();
-                    report.ContentType.ShouldBe("text/csv");
-                    success = true;
-
-                    break;
-                }
-                catch (ServerException e)
-                {
-                    output.WriteLine(e.Message);
                     await Task.Delay(1000);
                 }
             }
-            success.ShouldBeTrue();
+            result.ShouldNotBeNull();
+            result.Ready.ShouldBeTrue();
+            result.Content.ShouldNotBeNull().ShouldNotBeEmpty();
+            result.ContentType.ShouldBe("text/csv");
         }
 
         [Fact]
@@ -63,25 +58,20 @@ namespace EMBC.Tests.Integration.ESS.Managers
             });
 
             reportId.ShouldNotBeEmpty();
-            var success = false;
+
+            ReportQueryResult result = null;
             for (int attempt = 0; attempt < 30; attempt++)
             {
-                try
+                result = await messagingClient.Send(new EvacueeReportQuery { ReportRequestId = reportId });
+                if (!result.Ready)
                 {
-                    var report = await messagingClient.Send(new SupportReportQuery { ReportRequestId = reportId });
-                    report.ShouldNotBeNull().Content.ShouldNotBeEmpty();
-                    report.ContentType.ShouldBe("text/csv");
-                    success = true;
-
-                    break;
-                }
-                catch (ServerException e)
-                {
-                    output.WriteLine(e.Message);
                     await Task.Delay(1000);
                 }
             }
-            success.ShouldBeTrue();
+            result.ShouldNotBeNull();
+            result.Ready.ShouldBeTrue();
+            result.Content.ShouldNotBeNull().ShouldNotBeEmpty();
+            result.ContentType.ShouldBe("text/csv");
         }
     }
 }

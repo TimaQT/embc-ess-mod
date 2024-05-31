@@ -22,7 +22,6 @@ namespace EMBC.ESS.Resources.Payments
         public Task<InvoiceItem> QueryInvoice(string invoiceNumber, string suppliernumber, string suppliersitecode, CancellationToken ct);
     }
 
-    [Serializable]
     public class CasException : Exception
     {
         public CasException(string message) : base(message)
@@ -32,10 +31,6 @@ namespace EMBC.ESS.Resources.Payments
         public CasException(string message, Exception inner) : base(message, inner)
         {
         }
-
-        protected CasException(
-          System.Runtime.Serialization.SerializationInfo info,
-          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 
     internal class CasGateway : ICasGateway

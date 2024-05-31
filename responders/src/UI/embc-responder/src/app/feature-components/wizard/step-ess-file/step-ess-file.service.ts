@@ -13,11 +13,7 @@ import {
   NeedsAssessment,
   Pet
 } from 'src/app/core/api/models';
-import {
-  UntypedFormArray,
-  UntypedFormControl,
-  UntypedFormGroup
-} from '@angular/forms';
+import { UntypedFormBuilder, UntypedFormArray, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { AddressModel } from 'src/app/core/models/address.model';
 import { HouseholdMemberModel } from 'src/app/core/models/household-member.model';
 import { EvacuationFileModel } from 'src/app/core/models/evacuation-file.model';
@@ -32,6 +28,12 @@ import { WizardSteps, WizardType } from 'src/app/core/models/wizard-type.model';
 import { AppBaseService } from 'src/app/core/services/helper/appBase.service';
 import { ComputeRulesService } from 'src/app/core/services/computeRules.service';
 import { LoadEvacueeListService } from 'src/app/core/services/load-evacuee-list.service';
+import { CustomValidationService } from 'src/app/core/services/customValidation.service';
+
+export enum ShelterType {
+  allowance = 'shelterAllowance',
+  referral = 'shelterReferral'
+}
 
 @Injectable({ providedIn: 'root' })
 export class StepEssFileService {
@@ -73,7 +75,7 @@ export class StepEssFileService {
   // Needs tab
   private needs: Set<IdentifiedNeed> = new Set<IdentifiedNeed>();
 
-  // Security Phrase tab
+  // Security Word tab
   private bypassPhraseVal: boolean;
   private securityPhraseVal: string;
   private originalPhraseVal: string;
@@ -89,8 +91,10 @@ export class StepEssFileService {
     private evacueeSearchService: EvacueeSearchService,
     private appBaseService: AppBaseService,
     private computeState: ComputeRulesService,
-    private loadEvacueeListService: LoadEvacueeListService
-  ) { }
+    private loadEvacueeListService: LoadEvacueeListService,
+    private formBuilder: UntypedFormBuilder,
+    private customValidationService: CustomValidationService
+  ) {}
 
   // Selected ESS File Model getter and setter
   public get selectedEssFile(): EvacuationFileModel {
@@ -225,9 +229,7 @@ export class StepEssFileService {
   public get selectedHouseholdMembers(): HouseholdMemberModel[] {
     return this.selectedHouseholdMembersVal;
   }
-  public set selectedHouseholdMembers(
-    selectedHouseholdMembersVal: HouseholdMemberModel[]
-  ) {
+  public set selectedHouseholdMembers(selectedHouseholdMembersVal: HouseholdMemberModel[]) {
     this.selectedHouseholdMembersVal = selectedHouseholdMembersVal;
   }
 
@@ -291,7 +293,7 @@ export class StepEssFileService {
   }
 
   public get requiresIncidentals(): boolean {
-    return this.needs.has(IdentifiedNeed.Clothing);
+    return this.needs.has(IdentifiedNeed.Incidentals);
   }
 
   public set requiresIncidentals(checked: boolean) {
@@ -315,14 +317,14 @@ export class StepEssFileService {
   }
 
   public get requiresTransportation(): boolean {
-    return this.needs.has(IdentifiedNeed.Tranportation);
+    return this.needs.has(IdentifiedNeed.Transportation);
   }
 
   public set requiresTransportation(checked: boolean) {
-    if (checked && !this.needs.has(IdentifiedNeed.Tranportation)) {
-      this.needs.add(IdentifiedNeed.Tranportation);
-    } else if (!checked && this.needs.has(IdentifiedNeed.Tranportation)) {
-      this.needs.delete(IdentifiedNeed.Tranportation);
+    if (checked && !this.needs.has(IdentifiedNeed.Transportation)) {
+      this.needs.add(IdentifiedNeed.Transportation);
+    } else if (!checked && this.needs.has(IdentifiedNeed.Transportation)) {
+      this.needs.delete(IdentifiedNeed.Transportation);
     }
   }
   public get requiresShelterReferral(): boolean {
@@ -365,12 +367,12 @@ export class StepEssFileService {
   }
 
   public get needsIdentified(): string[] {
-    return Array.from(this.needs)
-    .map(need => this.loadEvacueeListService.getIdentifiedNeeds().find(value => value.value === need)?.description);
-
+    return Array.from(this.needs).map(
+      (need) => this.loadEvacueeListService.getIdentifiedNeeds().find((value) => value.value === need)?.description
+    );
   }
 
-  // Security Phrase tab
+  // Security Word tab
   public get bypassPhrase(): boolean {
     return this.bypassPhraseVal;
   }
@@ -398,6 +400,77 @@ export class StepEssFileService {
   }
   public set editedSecurityPhrase(editedSecurityPhraseVal: boolean) {
     this.editedSecurityPhraseVal = editedSecurityPhraseVal;
+  }
+
+  needsForm: UntypedFormGroup;
+  createNeedsForm(): UntypedFormGroup {
+    this.needsForm = this.formBuilder.group({
+      requiresShelter: [this.requiresShelterAllowance || this.requiresShelterReferral],
+      requiresShelterType: [
+        this.requiresShelterReferral
+          ? ShelterType.referral
+          : this.requiresShelterAllowance
+            ? ShelterType.allowance
+            : undefined,
+        this.customValidationService.conditionalValidation(
+          () => this.needsForm.controls.requiresShelter.value === true,
+          Validators.required
+        )
+      ],
+      requiresFood: [this.requiresFood ?? false],
+      requiresClothing: [this.requiresClothing ?? false],
+      requiresTransportation: [this.requiresTransportation ?? false],
+      requiresIncidentals: [this.requiresIncidentals ?? false],
+      requiresNothing: [this.requiresNothing ?? false]
+    });
+    this.needsForm.addValidators(this.customValidationService.needsValidator());
+    this.needsForm.controls.requiresNothing.valueChanges.subscribe((data) => {
+      if (data) {
+        this.disableNeeds();
+      } else {
+        this.enableNeeds();
+      }
+    });
+    this.needsForm.controls.requiresShelter.valueChanges.subscribe((checked) => {
+      if (!checked) {
+        this.needsForm.controls.requiresShelterType.reset();
+      }
+    });
+    if (this.requiresNothing) {
+      this.disableNeeds();
+    }
+
+    return this.needsForm;
+  }
+
+  private disableNeeds() {
+    this.disableFormControl('requiresIncidentals');
+    this.disableFormControl('requiresTransportation');
+    this.disableFormControl('requiresClothing');
+    this.disableFormControl('requiresFood');
+    this.disableFormControl('requiresShelter');
+    this.disableFormControl('requiresShelterType');
+  }
+
+  private enableNeeds() {
+    this.enableFormControl('requiresIncidentals');
+    this.enableFormControl('requiresTransportation');
+    this.enableFormControl('requiresClothing');
+    this.enableFormControl('requiresFood');
+    this.enableFormControl('requiresShelter');
+    this.enableFormControl('requiresShelterType');
+  }
+
+  private disableFormControl(formControlName: string) {
+    const formControl = this.needsForm.controls[formControlName];
+    formControl.disable();
+    formControl.reset();
+  }
+
+  private enableFormControl(formControlName: string) {
+    const formControl = this.needsForm.controls[formControlName];
+    formControl.enable();
+    formControl.reset();
   }
 
   /**
@@ -433,18 +506,13 @@ export class StepEssFileService {
 
     // Map out into DTO object and return
     return {
-      primaryRegistrantId:
-        this.appBaseService?.appModel?.selectedProfile?.selectedEvacueeInContext
-          ?.id,
+      primaryRegistrantId: this.appBaseService?.appModel?.selectedProfile?.selectedEvacueeInContext?.id,
       completedBy: this.completedBy,
       completedOn: this.completedOn,
       manualFileId: this.evacueeSession.isPaperBased
-        ? this.evacueeSearchService?.evacueeSearchContext
-          ?.evacueeSearchParameters?.paperFileNumber
+        ? this.evacueeSearchService?.evacueeSearchContext?.evacueeSearchParameters?.paperFileNumber
         : null,
-      evacuatedFromAddress: this.locationService.setAddressObjectForDTO(
-        this.evacAddress
-      ),
+      evacuatedFromAddress: this.locationService.setAddressObjectForDTO(this.evacAddress),
       registrationLocation: this.facilityName,
 
       needsAssessment: needsObject,
@@ -475,23 +543,19 @@ export class StepEssFileService {
       completedBy: this.completedBy,
       completedOn: this.completedOn,
       manualFileId: this.evacueeSession.isPaperBased
-        ? this.evacueeSearchService?.evacueeSearchContext
-          ?.evacueeSearchParameters?.paperFileNumber
+        ? this.evacueeSearchService?.evacueeSearchContext?.evacueeSearchParameters?.paperFileNumber
         : null,
       evacuationFileDate: this.evacuationFileDate,
       primaryRegistrantId: this.primaryRegistrantId,
 
-      evacuatedFromAddress: this.locationService.setAddressObjectForDTO(
-        this.evacAddress
-      ),
+      evacuatedFromAddress: this.locationService.setAddressObjectForDTO(this.evacAddress),
       registrationLocation: this.facilityName,
 
       needsAssessment: needsObject,
       securityPhrase: this.securityPhrase,
       securityPhraseEdited: this.editedSecurityPhrase,
       task: {
-        taskNumber:
-          this.taskNumber ?? this.userService.currentProfile?.taskNumber
+        taskNumber: this.userService.currentProfile?.taskNumber
       }
     };
   }
@@ -536,7 +600,7 @@ export class StepEssFileService {
     // Needs tab
     this.needs.clear();
 
-    // Security Phrase tab
+    // Security Word tab
     this.bypassPhrase = undefined;
     this.securityPhrase = undefined;
     this.originalSecurityPhrase = undefined;
@@ -584,15 +648,13 @@ export class StepEssFileService {
 
     // Household Members tab
     // Split main applicant from other household members, remap to UI model
-    this.householdMembers = essFile.householdMembers?.map<HouseholdMemberModel>(
-      (member) => {
-        return {
-          ...member,
-          sameLastName: member.lastName === primaryLastName,
-          householdMemberFromDatabase: true
-        };
-      }
-    );
+    this.householdMembers = essFile.householdMembers?.map<HouseholdMemberModel>((member) => {
+      return {
+        ...member,
+        sameLastName: member.lastName === primaryLastName,
+        householdMemberFromDatabase: true
+      };
+    });
 
     this.selectedHouseholdMembers = undefined;
 
@@ -603,15 +665,13 @@ export class StepEssFileService {
     // Animals tab
     const petsArray = [];
     this.petsList = [...petsArray, ...essNeeds.pets];
-    this.havePets = globalConst.radioButtonOptions.find(
-      (ins) => ins.apiValue === essNeeds.pets?.length > 0
-    )?.value;
+    this.havePets = globalConst.radioButtonOptions.find((ins) => ins.apiValue === essNeeds.pets?.length > 0)?.value;
 
     // Needs tab
     this.needs = new Set(essNeeds.needs);
     this.reqiresNothing = essNeeds.needs?.length === 0;
 
-    // Security Phrase tab
+    // Security Word tab
     this.securityPhrase = essFile.securityPhrase;
     this.originalSecurityPhrase = essFile.securityPhrase;
     this.editedSecurityPhrase = essFile.securityPhraseEdited;
@@ -644,9 +704,7 @@ export class StepEssFileService {
    */
   checkTabsStatus(): boolean {
     return this.essTabs?.some(
-      (tab) =>
-        (tab.status === 'not-started' || tab.status === 'incomplete') &&
-        tab.name !== 'review'
+      (tab) => (tab.status === 'not-started' || tab.status === 'incomplete') && tab.name !== 'review'
     );
   }
 
@@ -679,20 +737,14 @@ export class StepEssFileService {
   checkForPartialUpdates(form: UntypedFormGroup): boolean {
     const fields = [];
     Object.keys(form.controls).forEach((field) => {
-      const control = form.controls[field] as
-        | UntypedFormControl
-        | UntypedFormGroup
-        | UntypedFormArray;
+      const control = form.controls[field] as UntypedFormControl | UntypedFormGroup | UntypedFormArray;
       if (control instanceof UntypedFormControl) {
         if (control.value instanceof Object && control.value != null) {
           fields.push(control.value.length);
         } else {
           fields.push(control.value);
         }
-      } else if (
-        control instanceof UntypedFormGroup ||
-        control instanceof UntypedFormArray
-      ) {
+      } else if (control instanceof UntypedFormGroup || control instanceof UntypedFormArray) {
         for (const key in control.controls) {
           if (control.controls.hasOwnProperty(key)) {
             fields.push(control.controls[key].value);
@@ -713,10 +765,7 @@ export class StepEssFileService {
   checkForEvacDetailsPartialUpdates(form: UntypedFormGroup): boolean {
     const fields = [];
     Object.keys(form.controls).forEach((field) => {
-      const control = form.controls[field] as
-        | UntypedFormControl
-        | UntypedFormGroup
-        | UntypedFormArray;
+      const control = form.controls[field] as UntypedFormControl | UntypedFormGroup | UntypedFormArray;
       if (control instanceof UntypedFormControl) {
         if (control.value instanceof Object && control.value != null) {
           fields.push(control.value.length);
@@ -745,14 +794,10 @@ export class StepEssFileService {
       if (tab.name !== 'review') {
         tab.status = 'complete';
       }
-      if (tab.name === 'household-members') {
+      if (tab.name === 'household-members-pets') {
         tab.status = 'incomplete';
       }
-      if (
-        this.securityPhrase === null ||
-        this.securityPhrase === undefined ||
-        this.securityPhrase === ''
-      ) {
+      if (this.securityPhrase === null || this.securityPhrase === undefined || this.securityPhrase === '') {
         if (tab.name === 'security-phrase') {
           tab.status = 'not-started';
         }
@@ -769,10 +814,7 @@ export class StepEssFileService {
       if (tab.name !== 'review') {
         tab.status = 'complete';
       }
-      if (
-        tab.name === 'household-members' ||
-        tab.name === 'evacuation-details'
-      ) {
+      if (tab.name === 'household-members-pets' || tab.name === 'evacuation-details') {
         tab.status = 'incomplete';
       }
       return tab;
@@ -781,10 +823,8 @@ export class StepEssFileService {
 
   public getTaskEndDate(): string {
     if (
-      this.appBaseService?.wizardProperties?.wizardType ===
-      WizardType.NewEssFile ||
-      this.appBaseService?.wizardProperties?.wizardType ===
-      WizardType.NewRegistration
+      this.appBaseService?.wizardProperties?.wizardType === WizardType.NewEssFile ||
+      this.appBaseService?.wizardProperties?.wizardType === WizardType.NewRegistration
     ) {
       return this.userService?.currentProfile?.taskStartDate;
     } else {
@@ -812,10 +852,7 @@ export class StepEssFileService {
         this.wizardService.setStepStatus('/ess-wizard/add-notes', true);
       } else {
         if (!this.checkTabsStatus()) {
-          this.wizardService.setStepStatus(
-            '/ess-wizard/evacuee-profile',
-            false
-          );
+          this.wizardService.setStepStatus('/ess-wizard/evacuee-profile', false);
           this.wizardService.setStepStatus('/ess-wizard/add-supports', false);
           this.wizardService.setStepStatus('/ess-wizard/add-notes', false);
           this.setTabStatus('review', 'complete');

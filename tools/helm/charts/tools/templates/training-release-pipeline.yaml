@@ -4,19 +4,23 @@ metadata:
   name: training-release-pipeline
 
 spec:
+  params:
+    - name: sourceImageTag
+      description: 'Source Image Tag'
+      default: 'test-sup'  
   tasks:
     {{- range $key, $value := .Values.images }}
-    - name: test-{{ $key }}
+    - name: training-{{ $key }}
       params:
         - name: imageName
           value: {{ $key }}
         - name: fromTag
-          value: test
+          value: $(params.sourceImageTag)
         - name: toTag
           value: training
         - name: referencePolicy
-          value: local
+          value: source
       taskRef:
         kind: Task
-        name: promote-image-task1
+        name: promote-image-task
     {{- end }}

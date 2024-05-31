@@ -15,8 +15,8 @@ spec:
         - name: toTag
           value: prod
         - name: referencePolicy
-          value: local
+          value: source
       taskRef:
         kind: Task
-        name: promote-image-task1
+        name: promote-image-task
     {{- end }}
