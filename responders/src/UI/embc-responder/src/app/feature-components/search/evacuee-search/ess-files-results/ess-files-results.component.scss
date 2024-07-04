@@ -108,6 +108,17 @@
   text-decoration: underline;
 }
 
+.transfer-chip{
+  background-color:#2d843f;
+        color:#fff;
+        display:table;
+        padding: 5px 10px;
+        text-align:center;
+        font-weight: bold;
+        border-radius: 52px;
+        margin: 0 auto;
+}
+
 @media (max-width: 767px) {
   .vertical-line {
     display: none;

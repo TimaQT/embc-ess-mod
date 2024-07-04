@@ -64,7 +64,9 @@
           <div class="col-md-3">
             <div class="row">
               <div class="col-md-12 metaData-align">
-                <p>
+                <p> @if (appBaseService?.etransferProperties?.isRegistrantEtransferEligible) {
+                    <div class="transfer-chip">e-Transfer eligible</div>
+                  }
                   ESS File Created:
                   <b>{{ fileResult?.createdOn | date: 'dd-MMM-yyyy' }}</b>
                 </p>
