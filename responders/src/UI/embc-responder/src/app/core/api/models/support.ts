@@ -1,7 +1,9 @@
 /* tslint:disable */
 /* eslint-disable */
+import { ETransfer } from '../models/e-transfer';
+import { Interac } from '../models/interac';
+import { Referral } from '../models/referral';
 import { SupportCategory } from '../models/support-category';
-import { SupportDelivery } from '../models/support-delivery';
 import { SupportMethod } from '../models/support-method';
 import { SupportStatus } from '../models/support-status';
 import { SupportSubCategory } from '../models/support-sub-category';
@@ -22,6 +24,6 @@ export interface Support {
   needsAssessmentId?: string | null;
   status?: SupportStatus;
   subCategory?: SupportSubCategory;
-  supportDelivery: SupportDelivery;
+  supportDelivery: ETransfer | Interac | Referral;
   to: string;
 }

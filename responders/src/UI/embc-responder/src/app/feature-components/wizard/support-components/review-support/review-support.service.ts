@@ -10,6 +10,7 @@ import { StepSupportsService } from '../../step-supports/step-supports.service';
 import * as globalConst from '../../../../core/services/global-constants';
 import { mergeMap } from 'rxjs/operators';
 import { AppBaseService } from 'src/app/core/services/helper/appBase.service';
+import { AllSupportsType } from 'src/app/shared/models/support-extention';
 
 @Injectable({ providedIn: 'root' })
 export class ReviewSupportService {
@@ -34,7 +35,7 @@ export class ReviewSupportService {
   /**
    * Calls the REST API to post new supports associated to a given ESSFile
    */
-  processSupports(fileId: string, supportsDraft: Support[]): Observable<Blob> {
+  processSupports(fileId: string, supportsDraft: AllSupportsType[]) {
     return this.registrationService
       .registrationsProcessSupports({
         fileId,
@@ -54,7 +55,7 @@ export class ReviewSupportService {
       );
   }
 
-  savePaperSupports(fileId: string, supportsDraft: Support[]): Observable<void> {
+  savePaperSupports(fileId: string, supportsDraft: AllSupportsType[]): Observable<void> {
     return this.registrationService.registrationsProcessPaperReferrals({
       fileId,
       body: {

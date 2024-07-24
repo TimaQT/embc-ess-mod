@@ -408,7 +408,7 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
   }
 
   hideRateSheet(): boolean {
-    return this.stepSupportsService?.supportTypeToAdd?.value !== SupportSubCategory.Lodging_Group;
+    return this.stepSupportsService?.supportTypeToAdd?.value !== SupportSubCategory.LodgingGroup;
   }
 
   /**
@@ -506,21 +506,21 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
 
   mapSubCategoryToCategory(subCategory: SupportSubCategory): SupportCategory {
     switch (subCategory) {
-      case SupportSubCategory.Food_Groceries:
+      case SupportSubCategory.FoodGroceries:
         return SupportCategory.Food;
-      case SupportSubCategory.Food_Restaurant:
+      case SupportSubCategory.FoodRestaurant:
         return SupportCategory.Food;
-      case SupportSubCategory.Lodging_Hotel:
+      case SupportSubCategory.LodgingHotel:
         return SupportCategory.Lodging;
-      case SupportSubCategory.Lodging_Billeting:
+      case SupportSubCategory.LodgingBilleting:
         return SupportCategory.Lodging;
-      case SupportSubCategory.Lodging_Group:
+      case SupportSubCategory.LodgingGroup:
         return SupportCategory.Lodging;
-      case SupportSubCategory.Lodging_Allowance:
+      case SupportSubCategory.LodgingAllowance:
         return SupportCategory.Lodging;
-      case SupportSubCategory.Transportation_Taxi:
+      case SupportSubCategory.TransportationTaxi:
         return SupportCategory.Transportation;
-      case SupportSubCategory.Transportation_Other:
+      case SupportSubCategory.TransportationOther :
         return SupportCategory.Transportation;
 
       default:

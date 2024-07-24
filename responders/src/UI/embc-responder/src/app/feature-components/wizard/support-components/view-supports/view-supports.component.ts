@@ -24,6 +24,7 @@ import { SupportsTableComponent } from './supports-table/supports-table.componen
 import { MatOption } from '@angular/material/core';
 import { MatFormField, MatLabel } from '@angular/material/form-field';
 import { MatButton } from '@angular/material/button';
+import { AllSupportsType } from 'src/app/shared/models/support-extention';
 
 @Component({
   selector: 'app-view-supports',
@@ -34,12 +35,12 @@ import { MatButton } from '@angular/material/button';
 })
 export class ViewSupportsComponent implements OnInit, OnDestroy {
   @ViewChildren('matRef') matRef: QueryList<MatSelect>;
-  supportList: Support[];
+  supportList: AllSupportsType[];
   filterTerm: TableFilterValueModel;
   filtersToLoad: TableFilterModel;
   showLoader = false;
   supportListSubscription: Subscription;
-  private supportListEvent: BehaviorSubject<Support[]> = new BehaviorSubject<Support[]>(null);
+  private supportListEvent: BehaviorSubject<AllSupportsType[]> = new BehaviorSubject<AllSupportsType[]>(null);
 
   constructor(
     private router: Router,
@@ -144,7 +145,7 @@ export class ViewSupportsComponent implements OnInit, OnDestroy {
     });
   }
 
-  openSupportDetails($event: Support): void {
+  openSupportDetails($event: AllSupportsType): void {
     this.stepSupportsService.selectedSupportDetail = $event;
     this.router.navigate(['/ess-wizard/add-supports/view-detail']);
   }

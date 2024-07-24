@@ -931,7 +931,7 @@ export class RegistrationsService extends BaseService {
   registrationsGetPrint$Response(
     params: RegistrationsGetPrint$Params,
     context?: HttpContext
-  ): Observable<StrictHttpResponse<Blob>> {
+  ): Observable<StrictHttpResponse<void>> {
     return registrationsGetPrint(this.http, this.rootUrl, params, context);
   }
 
@@ -941,9 +941,9 @@ export class RegistrationsService extends BaseService {
    *
    * This method doesn't expect any request body.
    */
-  registrationsGetPrint(params: RegistrationsGetPrint$Params, context?: HttpContext): Observable<Blob> {
+  registrationsGetPrint(params: RegistrationsGetPrint$Params, context?: HttpContext): Observable<void> {
     return this.registrationsGetPrint$Response(params, context).pipe(
-      map((r: StrictHttpResponse<Blob>): Blob => r.body)
+      map((r: StrictHttpResponse<void>): void => r.body)
     );
   }
 

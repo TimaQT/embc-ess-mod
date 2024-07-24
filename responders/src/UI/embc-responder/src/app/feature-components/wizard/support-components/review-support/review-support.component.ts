@@ -37,6 +37,7 @@ import { AppLoaderComponent } from '../../../../shared/components/app-loader/app
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { NgStyle, DecimalPipe, DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
+import { AllSupportsType } from 'src/app/shared/models/support-extention';
 
 @Component({
   selector: 'app-review-support',
@@ -345,7 +346,7 @@ export class ReviewSupportComponent implements OnInit {
 
   private saveDraftSupports() {
     this.showLoader = !this.showLoader;
-    const supportsDraft: Support[] = this.referralService.getDraftSupport();
+    const supportsDraft: AllSupportsType[] = this.referralService.getDraftSupport();
     const fileId: string = this.evacueeSessionService.evacFile.id;
     this.reviewSupportService.savePaperSupports(fileId, supportsDraft).subscribe({
       next: (response) => {
@@ -364,11 +365,11 @@ export class ReviewSupportComponent implements OnInit {
 
   private processDraftSupports(): void {
     this.showLoader = !this.showLoader;
-    const supportsDraft: Support[] = this.referralService.getDraftSupport();
+    const supportsDraft: AllSupportsType[] = this.referralService.getDraftSupport();
     const fileId: string = this.evacueeSessionService.evacFile.id;
     this.reviewSupportService.processSupports(fileId, supportsDraft).subscribe({
       next: async (response) => {
-        const blob = new Blob([response], { type: response.type });
+        const blob = new Blob([response as unknown as Blob], { type: (response  as unknown as Blob).type });
         await this.downloadService.downloadFile(
           window,
           blob,

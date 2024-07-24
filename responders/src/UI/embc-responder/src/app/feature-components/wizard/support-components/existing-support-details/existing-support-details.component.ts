@@ -41,6 +41,7 @@ import { SupplierContactPipe } from '../../../../shared/pipes/supplierContact.pi
 import { MaskEvacuatedAddressPipe } from '../../../../shared/pipes/maskEvacuatedAddress.pipe';
 import { OverlayLoaderComponent } from '../../../../shared/components/overlay-loader/overlay-loader.component';
 import { NgClass, UpperCasePipe, DecimalPipe, DatePipe } from '@angular/common';
+import { AllSupportsType } from 'src/app/shared/models/support-extention';
 
 @Component({
   selector: 'app-existing-support-details',
@@ -58,7 +59,7 @@ import { NgClass, UpperCasePipe, DecimalPipe, DatePipe } from '@angular/common';
   ]
 })
 export class ExistingSupportDetailsComponent implements OnInit {
-  selectedSupport: Support;
+  selectedSupport: AllSupportsType;
   needsAssessmentForSupport: EvacuationFileModel;
   isLoading = false;
   isExtendSupports: boolean;
@@ -103,11 +104,11 @@ export class ExistingSupportDetailsComponent implements OnInit {
   }
 
   canExtendSupport(): boolean {
-    return this.selectedSupport?.subCategory !== SupportSubCategory.Lodging_Billeting;
+    return this.selectedSupport?.subCategory !== SupportSubCategory.LodgingBilleting;
   }
 
   canEditSupport(): boolean {
-    return this.selectedSupport?.subCategory !== SupportSubCategory.Lodging_Billeting;
+    return this.selectedSupport?.subCategory !== SupportSubCategory.LodgingBilleting;
   }
 
   checkGroceryMaxRate(): boolean {
@@ -258,7 +259,7 @@ export class ExistingSupportDetailsComponent implements OnInit {
               )
               .subscribe({
                 next: async (response) => {
-                  const blob = new Blob([response], { type: response.type });
+                  const blob = new Blob([response as unknown as Blob], { type: (response  as unknown as Blob).type });
                   await this.downloadService.downloadFile(
                     window,
                     blob,
