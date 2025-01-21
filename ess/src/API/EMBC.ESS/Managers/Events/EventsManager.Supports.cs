@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -353,14 +354,12 @@ public partial class EventsManager
         IEnumerable<SelfServeSupport> supports;
         if (query.Items == null)
         {
-            //generate the supports based on the file
+            //generate the supports based on the needs assessment
             var response = (GenerateSelfServeSupportsResponse)await supportingEngine.Generate(new GenerateSelfServeSupports(
-                mapper.Map<IEnumerable<SelfServeSupportType>>(file.NeedsAssessment.EligibilityCheck.SupportSettings.Select(s => s.Type)),
-                task.StartDate.ToPST(),
-                task.EndDate.ToPST(),
+                mapper.Map<IEnumerable<SelfServeSupportType>>(file.NeedsAssessment.EligibilityCheck.SupportSettings.Where(s => s.State == Resources.Evacuations.SelfServeSupportEligibilityState.Available).Select(s => s.Type)),
                 file.NeedsAssessment.EligibilityCheck.From.Value.ToPST(),
                 file.NeedsAssessment.EligibilityCheck.To.Value.ToPST(),
-                file.HouseholdMembers.Select(hm => new SelfServeHouseholdMember(hm.Id, hm.IsMinor)).ToList()));
+                file.NeedsAssessment.HouseholdMembers.Select(hm => new SelfServeHouseholdMember(hm.Id, hm.IsMinor)).ToList()));
             supports = response.Supports;
         }
         else
@@ -405,6 +404,21 @@ public partial class EventsManager
         }
 
         return cmd.EvacuationFileNumber;
+    }
+
+    public async Task<DuplicateSupportsQueryResult> Handle(DuplicateSupportsQuery query)
+    {
+        var supports = ((Resources.Supports.PotentialDuplicateSupportsQueryResult)await supportRepository.Query(new Resources.Supports.PotentialDuplicateSupportsQuery { 
+            Category = query.Category,
+            FromDate = query.FromDate,
+            ToDate = query.ToDate,
+            Members = query.Members
+         }));
+
+        return new DuplicateSupportsQueryResult
+        {
+            DuplicateSupports = mapper.Map<IEnumerable<Shared.Contracts.Events.Support>>(supports.DuplicateSupports)
+        };
     }
 
     public async Task<EligibilityCheckQueryResponse> Handle(EligibilityCheckQuery query)
@@ -467,6 +481,8 @@ public partial class EventsManager
             }
         }
         var totalAmount = clothingAmount + incidentalsAmount + groceryAmount + restaurantAmount + shelterAllowanceAmount;
+        var endDate = supports.Count() > 0 ? supports.First().To.ToPST() : DateTime.UtcNow.AddDays(3).ToPST();
+        string logoImage = this.ConvertImageToBase64(emcrLogoImageFileName);
 
         await SendEmailNotification(
             SubmissionTemplateType.ETransferConfirmation,
@@ -480,7 +496,10 @@ public partial class EventsManager
                 KeyValuePair.Create("restaurantAmount", (restaurantAmount > 0) ? restaurantAmount.ToString("0.00") : null),
                 KeyValuePair.Create("shelterAllowanceAmount", (shelterAllowanceAmount > 0) ? shelterAllowanceAmount.ToString("0.00") : null),
                 KeyValuePair.Create("recipientName", eTransferDetails.RecipientName),
-                KeyValuePair.Create("notificationEmail", eTransferDetails.ETransferEmail)
+                KeyValuePair.Create("notificationEmail", eTransferDetails.ETransferEmail),
+                KeyValuePair.Create("endDate", endDate.ToString("MMMM d, yyyy")),
+                KeyValuePair.Create("endTime", endDate.ToString("h:mm tt")),
+                KeyValuePair.Create("emcrLogoImage", logoImage)
             ]);
     }
 }

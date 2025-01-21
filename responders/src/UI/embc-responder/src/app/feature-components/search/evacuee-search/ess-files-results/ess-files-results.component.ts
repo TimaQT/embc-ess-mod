@@ -5,7 +5,6 @@ import {
   Component,
   Input,
   OnChanges,
-  OnInit,
   SimpleChanges,
   ViewChild
 } from '@angular/core';
@@ -79,21 +78,6 @@ export class EssFilesResultsComponent implements OnChanges, AfterViewInit, After
    * @param selectedESSFile selected ess file
    */
   async openESSFile(selectedESSFile: EvacuationFileSearchResultModel) {
-    const shouldProceed = await firstValueFrom(
-      this.dialog
-        .open<AccessReasonGateDialogComponent, AccessReasonData>(AccessReasonGateDialogComponent, {
-          data: {
-            accessEntity: this.evacueeSearchService.evacueeSearchContext.hasShownIdentification
-              ? 'essFile'
-              : 'secretWord',
-            entityId: selectedESSFile.id
-          }
-        })
-        .afterClosed()
-    );
-
-    if (!shouldProceed) return;
-
     this.essFilesResultsService.setSelectedFile(selectedESSFile.id);
     const profile$ = await this.essFilesResultsService.getSearchedUserProfile(selectedESSFile);
     if (this.evacueeSessionService.isPaperBased) {
@@ -103,6 +87,9 @@ export class EssFilesResultsComponent implements OnChanges, AfterViewInit, After
       ) {
         this.essFilesResultsService.openUnableAccessESSFileDialog();
       } else {
+        const shouldProceed = await this.openAccessReasonGateDialog(selectedESSFile);
+
+        if (!shouldProceed) return;
         this.router.navigate(['responder-access/search/essfile-dashboard']);
       }
     } else {
@@ -116,20 +103,42 @@ export class EssFilesResultsComponent implements OnChanges, AfterViewInit, After
             next: (results) => {
               this.essFilesResultsService.setloadingOverlay(false);
               this.essFileSecurityPhraseService.securityPhrase = results;
-              setTimeout(() => {
+              setTimeout(async () => {
+                const shouldProceed = await this.openAccessReasonGateDialog(selectedESSFile);
+
+                if (!shouldProceed) return;
                 this.router.navigate(['responder-access/search/security-phrase']);
               }, 200);
             },
             error: (error) => {
+              console.error(error);
               this.essFilesResultsService.setloadingOverlay(false);
               this.alertService.clearAlert();
               this.alertService.setAlert('danger', globalConst.securityPhraseError);
             }
           });
       } else {
+        const shouldProceed = await this.openAccessReasonGateDialog(selectedESSFile);
+
+        if (!shouldProceed) return;
         this.router.navigate(['responder-access/search/essfile-dashboard']);
       }
     }
+  }
+
+  openAccessReasonGateDialog(selectedESSFile: EvacuationFileSearchResultModel) {
+    return firstValueFrom(
+      this.dialog
+        .open<AccessReasonGateDialogComponent, AccessReasonData>(AccessReasonGateDialogComponent, {
+          data: {
+            accessEntity: this.evacueeSearchService.evacueeSearchContext.hasShownIdentification
+              ? 'essFile'
+              : 'secretWord',
+            entityId: selectedESSFile.id
+          }
+        })
+        .afterClosed()
+    );
   }
 
   /**
@@ -139,7 +148,7 @@ export class EssFilesResultsComponent implements OnChanges, AfterViewInit, After
    * @returns community name
    */
   communityName(address: AddressModel): string {
-    return (address.community as Community).name;
+    return (address.community as Community)?.name;
   }
 
   /**

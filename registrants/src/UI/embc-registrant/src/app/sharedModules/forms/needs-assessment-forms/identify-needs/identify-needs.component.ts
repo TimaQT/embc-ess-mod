@@ -1,4 +1,4 @@
-import { Component, OnInit, NgModule, Inject } from '@angular/core';
+import { Component, OnInit, NgModule, Inject, Input } from '@angular/core';
 
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -24,7 +24,15 @@ import { DialogContent } from 'src/app/core/model/dialog-content.model';
   imports: [ReactiveFormsModule, MatCardModule, MatFormFieldModule, MatCheckboxModule, MatRadioModule]
 })
 export default class IdentifyNeedsComponent implements OnInit {
-  identifyNeedsForm: UntypedFormGroup;
+  _form: UntypedFormGroup;
+
+  @Input()
+  set form(form: UntypedFormGroup) {
+    this._form = form;
+    this.identifyNeedsForm = form;
+  }
+
+  identifyNeedsForm: UntypedFormGroup = this.formCreationService.createNeedsForm();
   identifyNeedsForm$: Subscription;
 
   constructor(
@@ -33,9 +41,11 @@ export default class IdentifyNeedsComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.identifyNeedsForm$ = this.formCreationService.getIndentifyNeedsForm().subscribe((identifyNeedsForm) => {
-      this.identifyNeedsForm = identifyNeedsForm;
-    });
+    if (!this._form) {
+      this.identifyNeedsForm$ = this.formCreationService.getIndentifyNeedsForm().subscribe((identifyNeedsForm) => {
+        this.identifyNeedsForm = identifyNeedsForm;
+      });
+    }
   }
 
   public openShelterAllowanceDialog() {
@@ -58,9 +68,5 @@ export default class IdentifyNeedsComponent implements OnInit {
       },
       maxWidth: '400px'
     });
-  }
-
-  public get needsFormControl(): { [key: string]: AbstractControl } {
-    return this.identifyNeedsForm.controls;
   }
 }

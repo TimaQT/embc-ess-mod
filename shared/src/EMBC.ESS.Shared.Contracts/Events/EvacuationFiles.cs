@@ -9,6 +9,7 @@ namespace EMBC.ESS.Shared.Contracts.Events
     public class SubmitEvacuationFileCommand : Command
     {
         public EvacuationFile File { get; set; }
+        public bool IsFromResponder { get; set; } = false;
     }
 
     /// <summary>
@@ -110,6 +111,8 @@ namespace EMBC.ESS.Shared.Contracts.Events
         public bool? RestrictedAccess { get; set; }
         public bool? Verified { get; set; }
         public bool? Authenticated { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
     }
 
     public record Pet
@@ -141,6 +144,7 @@ namespace EMBC.ESS.Shared.Contracts.Events
         public DateTime ModifiedOn { get; set; }
         public TeamMember CreatedBy { get; set; }
         public bool IsHidden { get; set; }
+        public bool IsImportant { get; set; }
     }
 
     public enum NoteType

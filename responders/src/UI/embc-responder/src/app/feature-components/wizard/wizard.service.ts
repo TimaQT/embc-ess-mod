@@ -67,19 +67,23 @@ export class WizardService {
    *
    * @param navigateTo navigateTo url
    */
-  openExitModal(navigateTo: string): void {
+  openExitModal(navigateTo: string, addCaseWarning?: string): void {
+    const isSupportsPage = this.router.url.includes('/ess-wizard/add-supports');
+    const isCaseNoteWarning = isSupportsPage && addCaseWarning ? true : false;
     this.dialog
       .open(DialogComponent, {
         data: {
           component: InformationDialogComponent,
-          content: globalConst.exitWizardDialog
+          content: isCaseNoteWarning ? globalConst[addCaseWarning] : globalConst.exitWizardDialog
         },
         width: '530px'
       })
       .afterClosed()
       .subscribe((event) => {
-        if (event === 'confirm') {
+        if ((event === 'confirm' && !isCaseNoteWarning) || (event === 'cancel' && isCaseNoteWarning)) {
           this.router.navigate([navigateTo]);
+        } else if (event === 'confirm' && isCaseNoteWarning) {
+          this.router.navigate(['ess-wizard/add-notes/notes']);
         }
       });
   }
@@ -281,10 +285,10 @@ export class WizardService {
     if (
       formAddress.addressLine1 === incomingAddress.addressLine1 &&
       formAddress.addressLine2 === incomingAddress.addressLine2 &&
-      ((formAddress.community as Community).code === (incomingAddress.community as Community).code ||
+      ((formAddress.community as Community)?.code === (incomingAddress.community as Community)?.code ||
         (formAddress.community as string) === incomingAddress.city) &&
-      formAddress.stateProvince.code === incomingAddress.stateProvince.code &&
-      formAddress.country.code === incomingAddress.country.code &&
+      formAddress.stateProvince?.code === incomingAddress.stateProvince?.code &&
+      formAddress.country?.code === incomingAddress.country?.code &&
       formAddress.postalCode === incomingAddress.postalCode
     ) {
       return false;

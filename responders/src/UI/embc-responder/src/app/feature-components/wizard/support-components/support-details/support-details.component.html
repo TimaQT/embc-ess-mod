@@ -119,15 +119,6 @@
                       ) {
                         <mat-error> Only digits allowed</mat-error>
                       }
-                      @if (
-                        supportDetailsFormControl?.paperSupportNumber.invalid &&
-                        supportDetailsFormControl?.paperSupportNumber.hasError('userNameExists')
-                      ) {
-                        <mat-error>
-                          Paper Referral Number already exists for the same Support type:
-                          {{ stepSupportsService?.supportTypeToAdd?.description }}</mat-error
-                        >
-                      }
                     </mat-form-field>
                   </div>
                   <div class="col-md-4">
@@ -218,7 +209,7 @@
                       <p>Valid From:</p>
                       <div class="row">
                         <div class="col-md-6">
-                          <mat-form-field appearance="outline">
+                          <mat-form-field appearance="outline" class="error-wrapper">
                             <mat-label>Valid From Date</mat-label>
                             <input
                               matInput
@@ -233,11 +224,10 @@
 
                             @if (
                               supportDetailsFormControl.fromDate.invalid &&
-                              supportDetailsFormControl.fromDate.hasError('invalidDate')
+                              supportDetailsFormControl.fromDate.hasError('invalidTaskDate')
                             ) {
-                              <mat-error> Please enter a valid date</mat-error>
+                              <mat-error>Date must fall within the task dates</mat-error>
                             }
-
                             @if (
                               supportDetailsFormControl.fromDate.invalid &&
                               supportDetailsFormControl.fromDate.hasError('required')
@@ -247,7 +237,7 @@
                           </mat-form-field>
                         </div>
                         <div class="col-md-6">
-                          <mat-form-field appearance="outline">
+                          <mat-form-field appearance="outline" class="error-wrapper">
                             <mat-label>Valid From Time</mat-label>
                             <input
                               type="time"
@@ -260,7 +250,13 @@
                               supportDetailsFormControl.fromTime.invalid &&
                               supportDetailsFormControl.fromTime.hasError('required')
                             ) {
-                              <mat-error> From Time is required</mat-error>
+                              <mat-error>From Time is required</mat-error>
+                            }
+                            @if (
+                              supportDetailsFormControl.fromTime.invalid &&
+                              supportDetailsFormControl.fromTime.hasError('invalidTaskTime')
+                            ) {
+                              <mat-error>Time must fall within the task dates</mat-error>
                             }
                           </mat-form-field>
                         </div>
@@ -289,7 +285,7 @@
 
                       <div class="row">
                         <div class="col-md-6">
-                          <mat-form-field appearance="outline">
+                          <mat-form-field appearance="outline" class="error-wrapper">
                             <mat-label>Valid To Date</mat-label>
                             <input
                               matInput
@@ -304,11 +300,10 @@
 
                             @if (
                               supportDetailsFormControl.toDate.invalid &&
-                              supportDetailsFormControl.toDate.hasError('invalidDate')
+                              supportDetailsFormControl.toDate.hasError('invalidTaskDate')
                             ) {
-                              <mat-error> Please enter a valid date</mat-error>
+                              <mat-error>Date must fall within the task dates</mat-error>
                             }
-
                             @if (
                               supportDetailsFormControl.toDate.invalid &&
                               supportDetailsFormControl.toDate.hasError('required')
@@ -319,19 +314,25 @@
 
                           @if (!checkDateRange()) {
                             <mat-error class="custom-mat-error">
-                              Valid To Date cannot be greater then the 30 days from the Valid From Date</mat-error
+                              Valid date cannot be greater than 30 days from the Valid from date</mat-error
                             >
                           }
                         </div>
                         <div class="col-md-6">
-                          <mat-form-field appearance="outline">
+                          <mat-form-field appearance="outline" class="error-wrapper">
                             <mat-label>Valid To Time</mat-label>
                             <input type="time" formControlName="toTime" matInput placeholder="Valid To Time" required />
                             @if (
                               supportDetailsFormControl.toTime.invalid &&
                               supportDetailsFormControl.toTime.hasError('required')
                             ) {
-                              <mat-error> To Time Required</mat-error>
+                              <mat-error>To Time is required</mat-error>
+                            }
+                            @if (
+                              supportDetailsFormControl.toTime.invalid &&
+                              supportDetailsFormControl.toTime.hasError('invalidTaskTime')
+                            ) {
+                              <mat-error>Time must fall within the task dates</mat-error>
                             }
                           </mat-form-field>
                         </div>
@@ -364,38 +365,50 @@
                       </p>
                     </div>
                   </div>
-
-                  <div class="row">
-                    <div class="col-md-12">
-                      <mat-checkbox
-                        id="allMembers"
-                        [checked]="isChecked()"
-                        [indeterminate]="isIndeterminate()"
-                        (change)="$event ? selectAll($event) : null"
-                        ><span class="bold">All household members</span></mat-checkbox
-                      >
-                    </div>
+                  <div class="col-md-4" *ngIf="showLoader">
+                    <app-loader [strokeWidth]="3" [diameter]="25" [showLoader]="showLoader" [color]="color">
+                    </app-loader>
                   </div>
-                  @for (member of evacueeSessionService?.evacFile?.needsAssessment?.householdMembers; track member) {
+                  <div *ngIf="!showLoader">
                     <div class="row">
                       <div class="col-md-12">
                         <mat-checkbox
-                          (click)="$event.stopPropagation()"
-                          (change)="$event ? onChange($event, member) : null"
-                          [checked]="exists(member)"
-                        >
-                          {{ member.lastName | uppercase }}, {{ member.firstName | titlecase }}</mat-checkbox
+                          id="allMembers"
+                          [checked]="isChecked()"
+                          [indeterminate]="isIndeterminate()"
+                          (change)="selectAll($event)"
+                          ><span class="bold">All household members</span></mat-checkbox
                         >
                       </div>
                     </div>
-                  }
-                  @if (
-                    supportDetailsFormControl.members.invalid &&
-                    supportDetailsFormControl.members.hasError('noSelection')
-                  ) {
-                    <mat-error class="custom-mat-error"> Required</mat-error>
-                  }
-
+                    @for (member of evacueeSessionService?.evacFile?.needsAssessment?.householdMembers; track member) {
+                      <div class="row">
+                        <div class="col-md-12">
+                          <mat-checkbox
+                            (click)="$event.stopPropagation()"
+                            (change)="$event ? onChange($event, member) : null"
+                            [disabled]="!isHouseholdMemberEligibleForSupport(member)"
+                            [checked]="exists(member)"
+                          >
+                            {{ member.lastName | uppercase }}, {{ member.firstName | titlecase }}
+                          </mat-checkbox>
+                          <!-- Display error message if the checkbox is disabled -->
+                          @if (!isHouseholdMemberEligibleForSupport(member)) {
+                            <mat-error class="custom-mat-info">
+                              {{ member.firstName | titlecase }} {{ member.lastName | titlecase }} has already received
+                              this support. Extensions for this support are not available at this time.
+                            </mat-error>
+                          }
+                        </div>
+                      </div>
+                    }
+                    @if (
+                      supportDetailsFormControl.members.invalid &&
+                      supportDetailsFormControl.members.hasError('noSelection')
+                    ) {
+                      <mat-error class="custom-mat-error"> Required</mat-error>
+                    }
+                  </div>
                   <div>
                     @switch (stepSupportsService?.supportTypeToAdd?.value) {
                       <!-- Shelter-Allowance -->

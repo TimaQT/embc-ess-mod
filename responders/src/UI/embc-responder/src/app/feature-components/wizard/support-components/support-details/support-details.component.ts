@@ -1,5 +1,5 @@
-import { DatePipe, NgStyle, UpperCasePipe, TitleCasePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { DatePipe, NgStyle, UpperCasePipe, TitleCasePipe, CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, ChangeDetectorRef } from '@angular/core';
 import {
   AbstractControl,
   UntypedFormArray,
@@ -8,7 +8,9 @@ import {
   UntypedFormGroup,
   Validators,
   FormsModule,
-  ReactiveFormsModule
+  ReactiveFormsModule,
+  ValidatorFn,
+  ValidationErrors
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CustomValidationService } from 'src/app/core/services/customValidation.service';
@@ -21,13 +23,13 @@ import { SupportDetailsService } from './support-details.service';
 import { MatDialog } from '@angular/material/dialog';
 import { DialogComponent } from 'src/app/shared/components/dialog/dialog.component';
 import { InformationDialogComponent } from 'src/app/shared/components/dialog-components/information-dialog/information-dialog.component';
-import { Support, SupportStatus, SupportSubCategory } from 'src/app/core/api/models';
+import { Support, SupportCategory, SupportStatus, SupportSubCategory } from 'src/app/core/api/models';
 import { EvacueeSessionService } from 'src/app/core/services/evacuee-session.service';
 import { AlertService } from 'src/app/shared/components/alert/alert.service';
 import { ReferralCreationService } from '../../step-supports/referral-creation.service';
 import { DateConversionService } from 'src/app/core/services/utility/dateConversion.service';
 import { ComputeRulesService } from 'src/app/core/services/computeRules.service';
-import { Subscription } from 'rxjs';
+import { firstValueFrom, Subscription } from 'rxjs';
 import { LoadEvacueeListService } from '../../../../core/services/load-evacuee-list.service';
 import {
   MatDatepickerInputEvent,
@@ -52,12 +54,15 @@ import { AppLoaderComponent } from '../../../../shared/components/app-loader/app
 import { MatInput } from '@angular/material/input';
 import { MatFormField, MatPrefix, MatError, MatLabel, MatSuffix } from '@angular/material/form-field';
 import { MatCard, MatCardContent } from '@angular/material/card';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { DialogContent } from 'src/app/core/models/dialog-content.model';
 
 @Component({
   selector: 'app-support-details',
   templateUrl: './support-details.component.html',
   styleUrls: ['./support-details.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     MatCard,
     MatCardContent,
@@ -77,6 +82,7 @@ import { MatCard, MatCardContent } from '@angular/material/card';
     MatSelect,
     MatOption,
     MatCheckbox,
+    MatTooltipModule,
     ShelterAllowanceGroupComponent,
     FoodMealsComponent,
     FoodGroceriesComponent,
@@ -90,7 +96,8 @@ import { MatCard, MatCardContent } from '@angular/material/card';
     MatButton,
     UpperCasePipe,
     TitleCasePipe,
-    DatePipe
+    DatePipe,
+    CommonModule
   ]
 })
 export class SupportDetailsComponent implements OnInit, OnDestroy {
@@ -109,6 +116,8 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
   originalSupport: Support;
   existingSupports: Support[];
   supportListSubscription: Subscription;
+  supportLimits: any;
+  supportLimitsSubscription: Subscription;
 
   constructor(
     private router: Router,
@@ -123,6 +132,7 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     private referralCreationService: ReferralCreationService,
     private dateConversionService: DateConversionService,
     private computeState: ComputeRulesService,
+    private cdr: ChangeDetectorRef,
     private loadEvacueeListService: LoadEvacueeListService
   ) {
     if (this.router.getCurrentNavigation() !== null) {
@@ -138,6 +148,85 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     }
     this.currentTime = this.datePipe.transform(Date.now(), 'HH:mm');
   }
+
+  compareTaskDateTimeValidator({ controlType, other }: { controlType: 'date' | 'time'; other: string }): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      let isValid = false;
+      const error = controlType === 'date' ? { invalidTaskDate: true } : { invalidTaskTime: true };
+      const otherControl = this.supportDetailsForm?.get(other);
+
+      if (
+        control?.value === null ||
+        control?.value === '' ||
+        control?.value === undefined ||
+        otherControl?.value === null ||
+        otherControl?.value === '' ||
+        otherControl?.value === undefined
+      ) {
+        isValid = true;
+      } else {
+        let controlDate;
+        if (controlType === 'date') {
+          controlDate = this.dateConversionService.createDateTimeString(control.value, otherControl.value);
+        } else {
+          controlDate = this.dateConversionService.createDateTimeString(otherControl.value, control.value);
+        }
+
+        if (this.evacueeSessionService?.evacFile?.task?.from && this.evacueeSessionService?.evacFile?.task?.to) {
+          const from = moment(this.evacueeSessionService?.evacFile?.task?.from);
+          const to = moment(this.evacueeSessionService?.evacFile?.task?.to);
+          const current = moment(controlDate);
+
+          if (current.isSame(to, 'day') && current.isAfter(to)) {
+            isValid = false;
+          } else {
+            isValid = current.isBetween(from, to, 'm', '[]');
+          }
+        } else isValid = true;
+      }
+
+      if (!isValid) {
+        otherControl?.setErrors(error);
+        return error;
+      }
+
+      otherControl?.setErrors(null);
+      return null;
+    };
+  }
+
+  private removeError(control: AbstractControl, errorKey: string): void {
+    if (control && control.errors && control.errors[errorKey]) {
+      const errors = { ...control.errors };
+      delete errors[errorKey];
+      if (Object.keys(errors).length === 0) {
+        control.setErrors(null);
+      } else {
+        control.setErrors(errors);
+      }
+    }
+  }
+
+  private supportMapping: Map<number, SupportSubCategory | SupportCategory> = new Map<
+    number,
+    SupportSubCategory | SupportCategory
+  >([
+    [174360000, SupportSubCategory.Food_Groceries],
+    [174360001, SupportSubCategory.Food_Restaurant],
+    [174360002, SupportSubCategory.Lodging_Hotel],
+    [174360003, SupportSubCategory.Lodging_Billeting],
+    [174360004, SupportSubCategory.Lodging_Group],
+    [174360005, SupportCategory.Incidentals],
+    [174360006, SupportCategory.Clothing],
+    [174360007, SupportSubCategory.Transportation_Taxi],
+    [174360008, SupportSubCategory.Transportation_Other],
+    [174360009, SupportSubCategory.Lodging_Allowance]
+  ]);
+
+  private inverseSupportMapping: Map<SupportSubCategory | SupportCategory, number> = new Map<
+    SupportSubCategory | SupportCategory,
+    number
+  >(Array.from(this.supportMapping.entries()).map(([key, value]) => [value, key]));
 
   validDateFilter = (d: Date | null): boolean => {
     const date = d || new Date();
@@ -173,6 +262,32 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    this.showLoader = true;
+    this.supportLimitsSubscription = this.stepSupportsService.fetchSupportLimits().subscribe({
+      next: (supportLimits) => {
+        this.supportLimits = supportLimits;
+        this.showLoader = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.showLoader = false;
+        console.error('Error fetching support limits: ', error);
+        this.alertService.clearAlert();
+        this.alertService.setAlert('danger', globalConst.supportListerror);
+        this.cdr.detectChanges();
+      }
+    });
+
+    this.supportListSubscription = this.stepSupportsService.getExistingSupportList().subscribe({
+      next: (supports) => {
+        this.existingSupports = supports;
+      },
+      error: (error) => {
+        this.alertService.clearAlert();
+        this.alertService.setAlert('danger', globalConst.supportListerror);
+      }
+    });
+
     this.createSupportDetailsForm();
     this.supportDetailsForm.get('noOfDays').valueChanges.subscribe((value) => {
       this.updateValidToDate(value);
@@ -198,19 +313,49 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
 
     this.calculateNoOfDays();
 
-    this.supportListSubscription = this.stepSupportsService.getExistingSupportList().subscribe({
-      next: (supports) => {
-        this.existingSupports = supports;
-      },
-      error: (error) => {
-        this.alertService.clearAlert();
-        this.alertService.setAlert('danger', globalConst.supportListerror);
-      }
-    });
+    if (this.cloneFlag) {
+      this.supportDetailsForm.get('noOfDays').patchValue(1);
+    }
   }
 
   ngOnDestroy(): void {
     this.supportListSubscription.unsubscribe();
+    this.supportLimitsSubscription.unsubscribe();
+  }
+
+  isHouseholdMemberEligibleForSupport(member: EvacuationFileHouseholdMember): boolean {
+    if (!this.supportLimits || this.supportLimits.length === 0) {
+      return true;
+    }
+    const currentSupportType = this.stepSupportsService.supportTypeToAdd.description;
+    const matchingSupportLimit = this.supportLimits.find(
+      (limit) => this.mapSupportType(limit.supportType) === currentSupportType
+    );
+    if (!matchingSupportLimit) {
+      return true;
+    }
+    if (matchingSupportLimit.extensionAvailable) {
+      return true;
+    }
+    const supportLimitStartDate = moment(matchingSupportLimit.supportLimitStartDate);
+    const supportLimitEndDate = moment(matchingSupportLimit.supportLimitEndDate);
+    const hasReceivedSupport = this.existingSupports.some((support) => {
+      const supportDate = moment(support.from);
+      return (
+        support.category === currentSupportType &&
+        support.includedHouseholdMembers?.some((m) => m === member.id) &&
+        support.status !== SupportStatus.Cancelled.toString() &&
+        support.status !== SupportStatus.Void.toString() &&
+        supportDate.isBetween(supportLimitStartDate, supportLimitEndDate, 'days', '[]')
+      );
+    });
+    return !hasReceivedSupport;
+  }
+
+  allMembersEligible(): boolean {
+    return this.evacueeSessionService?.evacFile?.needsAssessment?.householdMembers.every((member) =>
+      this.isHouseholdMemberEligibleForSupport(member)
+    );
   }
 
   checkDateRange(): boolean {
@@ -312,7 +457,9 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     if ($event.checked) {
       members.clear();
       this.evacueeSessionService?.evacFile?.needsAssessment?.householdMembers.forEach((member) => {
-        members.push(new UntypedFormControl(member));
+        if (this.isHouseholdMemberEligibleForSupport(member)) {
+          members.push(new UntypedFormControl(member));
+        }
       });
     } else {
       members.clear();
@@ -350,9 +497,21 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
    */
   updateValidToDate(days?: number): void {
     const currentVal = this.supportDetailsForm.get('fromDate').value;
+    const currentSupportType = this.stepSupportsService.supportTypeToAdd.value;
     if (days !== null && currentVal !== '') {
       const date = new Date(currentVal);
-      const finalValue = this.datePipe.transform(date.setDate(date.getDate() + days), 'MM/dd/yyyy');
+      const fromTime = this.supportDetailsForm.get('fromTime').value;
+      const afterMidnightBeforeSix = this.isTimeBetween(fromTime, '00:00:00', '06:00:00');
+      let totalDays = days;
+      if (
+        afterMidnightBeforeSix &&
+        (currentSupportType === SupportSubCategory.Lodging_Hotel ||
+          currentSupportType === SupportSubCategory.Lodging_Allowance ||
+          currentSupportType === SupportSubCategory.Lodging_Group)
+      ) {
+        totalDays -= 1;
+      }
+      const finalValue = this.datePipe.transform(date.setDate(date.getDate() + totalDays), 'MM/dd/yyyy');
       this.supportDetailsForm.get('toDate').patchValue(new Date(finalValue));
     }
   }
@@ -365,9 +524,22 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
   updateToDate(event: MatDatepickerInputEvent<Date>) {
     const days = this.supportDetailsForm.get('noOfDays').value;
     const currentVal = this.supportDetailsForm.get('fromDate').value;
+    const fromTime = this.supportDetailsForm.get('fromTime').value;
+    const currentSupportType = this.stepSupportsService.supportTypeToAdd.value;
+    const afterMidnightBeforeSix = this.isTimeBetween(fromTime, '00:00:00', '06:00:00');
     const date = new Date(currentVal);
-    const finalValue = this.datePipe.transform(date.setDate(date.getDate() + days), 'MM/dd/yyyy');
-    this.supportDetailsForm.get('toDate').patchValue(new Date(finalValue));
+    let finalValue = this.datePipe.transform(date.setDate(date.getDate() + days), 'MM/dd/yyyy');
+    if (
+      afterMidnightBeforeSix &&
+      (currentSupportType === SupportSubCategory.Lodging_Hotel ||
+        currentSupportType === SupportSubCategory.Lodging_Allowance ||
+        currentSupportType === SupportSubCategory.Lodging_Group)
+    ) {
+      finalValue = this.datePipe.transform(date.setDate(date.getDate() + days - 1), 'MM/dd/yyyy');
+      this.supportDetailsForm.get('toDate').patchValue(new Date(finalValue));
+    } else {
+      this.supportDetailsForm.get('toDate').patchValue(new Date(finalValue));
+    }
   }
 
   /**
@@ -377,47 +549,30 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
    */
   updateNoOfDays(event: MatDatepickerInputEvent<Date>) {
     const fromDate = this.datePipe.transform(this.supportDetailsForm.get('fromDate').value, 'dd-MMM-yyyy');
+    const fromTime = this.supportDetailsForm.get('fromTime').value;
     const toDate = this.datePipe.transform(event.value, 'dd-MMM-yyyy');
     const dateDiff = new Date(toDate).getTime() - new Date(fromDate).getTime();
-    const days = dateDiff / (1000 * 60 * 60 * 24);
+    const currentSupportType = this.stepSupportsService.supportTypeToAdd.value;
+    let days = dateDiff / (1000 * 60 * 60 * 24);
+
+    const afterMidnightBeforeSix = this.isTimeBetween(fromTime, '00:00:00', '06:00:00');
 
     if (days > 30) {
       this.supportDetailsForm.get('noOfDays').patchValue(null);
     } else {
+      if (
+        afterMidnightBeforeSix &&
+        (currentSupportType === SupportSubCategory.Lodging_Hotel ||
+          currentSupportType === SupportSubCategory.Lodging_Allowance ||
+          currentSupportType === SupportSubCategory.Lodging_Group)
+      ) {
+        days = days + 1;
+      }
       this.supportDetailsForm.get('noOfDays').patchValue(days);
     }
   }
 
-  generateSupportType(element: Support): string {
-    if (element?.subCategory === 'None') {
-      const category = this.loadEvacueeListService
-        .getSupportCategories()
-        .find((value) => value.value === element?.category);
-      return category?.description;
-    } else {
-      const subCategory = this.loadEvacueeListService
-        .getSupportSubCategories()
-        .find((value) => value.value === element?.subCategory);
-      return subCategory?.description;
-    }
-  }
-
-  generateSupportTypeValue(element: Support): string {
-    if (element?.subCategory === 'None') {
-      const category = this.loadEvacueeListService
-        .getSupportCategories()
-        .find((value) => value.value === element?.category);
-      return category?.value;
-    } else {
-      const subCategory = this.loadEvacueeListService
-        .getSupportSubCategories()
-        .find((value) => value.value === element?.subCategory);
-      return subCategory?.value;
-    }
-  }
-
-  validateDelivery() {
-    let hasConflict = false;
+  async validateDelivery() {
     if (!this.supportDetailsForm.valid) {
       this.supportDetailsForm.markAllAsTouched();
       return;
@@ -430,26 +585,26 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     }
 
     const thisSupport = this.supportDetailsForm.getRawValue();
-    const from = this.dateConversionService.createDateTimeString(thisSupport.fromDate, thisSupport.fromTime);
-    const to = this.dateConversionService.createDateTimeString(thisSupport.toDate, thisSupport.toTime);
-    const overlappingSupports = existingSupports.filter(
-      (s) =>
-        this.generateSupportType(s) === this.stepSupportsService.supportTypeToAdd.description &&
-        moment(to).isSameOrAfter(moment(s.from)) &&
-        moment(from).isSameOrBefore(moment(s.to))
-    );
-    const overlappingFoodSupports = existingSupports.filter(
-      (s) =>
-        (this.generateSupportTypeValue(s) === SupportSubCategory.Food_Groceries.toString() &&
-          moment(to).isSameOrAfter(moment(s.from)) &&
-          moment(from).isSameOrBefore(moment(s.to))) ||
-        (this.generateSupportTypeValue(s) === SupportSubCategory.Food_Restaurant.toString() &&
-          moment(to).isSameOrAfter(moment(s.from)) &&
-          moment(from).isSameOrBefore(moment(s.to)))
-    );
+    const from = moment(this.dateConversionService.createDateTimeString(thisSupport.fromDate, thisSupport.fromTime));
+    const to = moment(this.dateConversionService.createDateTimeString(thisSupport.toDate, thisSupport.toTime));
+    const category: SupportCategory =
+      SupportCategory[this.stepSupportsService.supportTypeToAdd.value] ||
+      this.mapSubCategoryToCategory(SupportSubCategory[this.stepSupportsService.supportTypeToAdd.value]);
+    const members: EvacuationFileHouseholdMember[] = this.supportDetailsForm.get('members').value.map((m) => m.id);
 
-    hasConflict = overlappingSupports.length > 0 || overlappingFoodSupports.length > 0;
+    const hasConflict = existingSupports.some((s) => {
+      const sFrom = moment(s.from);
+      const sTo = moment(s.to);
+      return (
+        s.status !== SupportStatus.Void &&
+        s.category === category &&
+        ((sFrom.isSameOrAfter(from) && sFrom.isSameOrBefore(to)) ||
+          (sTo.isSameOrAfter(from) && sTo.isSameOrBefore(to)) ||
+          (sFrom.isSameOrBefore(from) && sTo.isSameOrAfter(to)))
+      );
+    });
 
+    // Initial check for duplicate supports within the same ESS file
     if (hasConflict) {
       this.dialog
         .open(DialogComponent, {
@@ -466,7 +621,96 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
           }
         });
     } else {
-      this.addDelivery();
+      const supportCategory =
+        SupportSubCategory[this.stepSupportsService.supportTypeToAdd.value] ||
+        SupportCategory[this.stepSupportsService.supportTypeToAdd.value];
+      const duplicateSupportRequest = {
+        members,
+        toDate: to.toISOString(),
+        fromDate: from.toISOString(),
+        category: this.mapSupportTypeInverse(supportCategory)
+      };
+
+      try {
+        // Get potential duplicates based on fuzzy search from API
+        const potentialDuplicateSupports = await firstValueFrom(
+          this.stepSupportsService.checkPossibleDuplicateSupports(duplicateSupportRequest)
+        );
+        // If there are potential duplicates, show a dialog to confirm
+        if (potentialDuplicateSupports.length > 0) {
+          const message: DialogContent = this.generateDuplicateSupportDialog(potentialDuplicateSupports, category);
+          this.dialog
+            .open(DialogComponent, {
+              data: {
+                component: InformationDialogComponent,
+                content: message
+              },
+              width: '720px'
+            })
+            .afterClosed()
+            .subscribe((event) => {
+              if (event === 'confirm') {
+                // If confirmed, add the delivery
+                this.addDelivery();
+              }
+            });
+          // If there are no potential duplicates found, add the delivery
+        } else {
+          this.addDelivery();
+        }
+      } catch (error) {
+        console.error('Error fetching duplicate supports: ', error);
+        return;
+      }
+    }
+  }
+
+  generateDuplicateSupportDialog(potentialDuplicateSupports: Support[], category: string): DialogContent {
+    console.log(potentialDuplicateSupports);
+    const uniqueHouseholdMembers = new Map<string, string>();
+    potentialDuplicateSupports.forEach((s) => {
+      s.householdMembers.forEach((m) => {
+        uniqueHouseholdMembers.set(
+          m.firstName + m.lastName + m.dateOfBirth,
+          `<br><strong>Name:</strong> ${m.firstName} ${m.lastName} <br><strong>Date of Birth:</strong> ${m.dateOfBirth}`
+        );
+      });
+    });
+    return {
+      title: 'Possible Support Conflict',
+      text:
+        'The support you are trying to add may have conflicts with previously issued supports. The following evacuees received a ' +
+        category +
+        ' support during the same time period: <br>' +
+        Array.from(uniqueHouseholdMembers.values()).join('<br>') +
+        '.<br><br>Do you want to continue?',
+
+      confirmButton: 'Yes, Continue',
+      cancelButton: 'No, Cancel'
+    };
+  }
+
+  mapSubCategoryToCategory(subCategory: SupportSubCategory): SupportCategory {
+    switch (subCategory) {
+      case SupportSubCategory.Food_Groceries:
+        return SupportCategory.Food;
+      case SupportSubCategory.Food_Restaurant:
+        return SupportCategory.Food;
+      case SupportSubCategory.Lodging_Hotel:
+        return SupportCategory.Lodging;
+      case SupportSubCategory.Lodging_Billeting:
+        return SupportCategory.Lodging;
+      case SupportSubCategory.Lodging_Group:
+        return SupportCategory.Lodging;
+      case SupportSubCategory.Lodging_Allowance:
+        return SupportCategory.Lodging;
+      case SupportSubCategory.Transportation_Taxi:
+        return SupportCategory.Transportation;
+      case SupportSubCategory.Transportation_Other:
+        return SupportCategory.Transportation;
+
+      default:
+        return SupportCategory.Unknown;
     }
   }
 
@@ -552,9 +796,9 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
         ? this.stepSupportsService?.supportDetails?.fromDate
         : '';
     } else {
-      return this.stepSupportsService?.supportDetails?.fromDate
+      return this.stepSupportsService?.supportDetails?.fromDate && !this.cloneFlag
         ? this.stepSupportsService?.supportDetails?.fromDate
-        : new Date(this.dateConversionService.convertStringToDate(this.datePipe.transform(Date.now(), 'dd-MMM-yyyy')));
+        : this.createFromDate();
     }
   }
 
@@ -564,9 +808,123 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
         ? this.stepSupportsService?.supportDetails?.fromTime
         : '';
     } else {
-      return this.stepSupportsService?.supportDetails?.fromTime
+      return this.stepSupportsService?.supportDetails?.fromTime && !this.cloneFlag
         ? this.stepSupportsService?.supportDetails?.fromTime
-        : this.currentTime;
+        : this.setDefaultTimes();
+    }
+  }
+
+  private createFromDate() {
+    let existingSupports = this.existingSupports.filter(
+      (x) => x.status !== SupportStatus.Cancelled.toString() && x.status !== SupportStatus.Void.toString()
+    );
+
+    const category: SupportCategory =
+      SupportCategory[this.stepSupportsService.supportTypeToAdd.value] ||
+      this.mapSubCategoryToCategory(SupportSubCategory[this.stepSupportsService.supportTypeToAdd.value]);
+
+    let largestTo = existingSupports
+      .filter((support) => support.category === category)
+      .reduce(
+        (maxTo, support) => {
+          const supportTo = moment(support.to);
+          return supportTo.isAfter(maxTo) ? new Date(supportTo.toDate().getTime() + 60000) : maxTo;
+        },
+        new Date(this.dateConversionService.convertStringToDate(this.datePipe.transform(Date.now(), 'dd-MMM-yyyy')))
+      );
+    const taskTo = moment(this.evacueeSessionService?.evacFile?.task?.to);
+
+    if (moment(largestTo).isAfter(taskTo)) {
+      largestTo = taskTo.toDate();
+    }
+
+    return largestTo;
+  }
+
+  private setDefaultTimes() {
+    let existingSupports = this.existingSupports.filter(
+      (x) => x.status !== SupportStatus.Cancelled.toString() && x.status !== SupportStatus.Void.toString()
+    );
+
+    const category: SupportCategory =
+      SupportCategory[this.stepSupportsService.supportTypeToAdd.value] ||
+      this.mapSubCategoryToCategory(SupportSubCategory[this.stepSupportsService.supportTypeToAdd.value]);
+    const maxToDate = existingSupports
+      .filter((support) => support.category === category)
+      .map((support) => new Date(support.to)) // Convert to Date objects
+      .reduce((max, date) => (date > max ? date : max), new Date(-8640000000000000)); // Compare dates and get the max
+
+    // Add one minute to the maxToDate
+    const maxToDatePlusOneMinute = new Date(maxToDate.getTime() + 60000);
+
+    // Get the current time
+    const currentDateTime = new Date();
+    currentDateTime.setSeconds(0);
+
+    // Compare and get the later time between maxToDatePlusOneMinute and currentTime
+    let finalTime = maxToDatePlusOneMinute > currentDateTime ? maxToDatePlusOneMinute : currentDateTime;
+    const taskTo = moment(this.evacueeSessionService?.evacFile?.task?.to);
+    if (moment(finalTime).isAfter(taskTo)) {
+      finalTime = taskTo.toDate();
+      finalTime.setSeconds(0);
+    }
+
+    const largestToTime = finalTime.toTimeString().split(' ')[0];
+    return largestToTime;
+  }
+
+  private mapSupportType(supportType: number): SupportSubCategory | SupportCategory {
+    switch (supportType) {
+      case 174360000:
+        return SupportSubCategory.Food_Groceries;
+      case 174360001:
+        return SupportSubCategory.Food_Restaurant;
+      case 174360002:
+        return SupportSubCategory.Lodging_Hotel;
+      case 174360003:
+        return SupportSubCategory.Lodging_Billeting;
+      case 174360004:
+        return SupportSubCategory.Lodging_Group;
+      case 174360005:
+        return SupportCategory.Incidentals;
+      case 174360006:
+        return SupportCategory.Clothing;
+      case 174360007:
+        return SupportSubCategory.Transportation_Taxi;
+      case 174360008:
+        return SupportSubCategory.Transportation_Other;
+      case 174360009:
+        return SupportSubCategory.Lodging_Allowance;
+      default:
+        return SupportCategory.Unknown;
+    }
+  }
+
+  private mapSupportTypeInverse(support: SupportSubCategory | SupportCategory): number {
+    console.log('Support: ', support);
+    switch (support) {
+      case SupportSubCategory.Food_Groceries:
+        return 174360000;
+      case SupportSubCategory.Food_Restaurant:
+        return 174360001;
+      case SupportSubCategory.Lodging_Hotel:
+        return 174360002;
+      case SupportSubCategory.Lodging_Billeting:
+        return 174360003;
+      case SupportSubCategory.Lodging_Group:
+        return 174360004;
+      case SupportCategory.Incidentals:
+        return 174360005;
+      case SupportCategory.Clothing:
+        return 174360006;
+      case SupportSubCategory.Transportation_Taxi:
+        return 174360007;
+      case SupportSubCategory.Transportation_Other:
+        return 174360008;
+      case SupportSubCategory.Lodging_Allowance:
+        return 174360009;
+      default:
+        throw new Error(`Unknown SupportSubCategory or SupportCategory: ${support}`);
     }
   }
 
@@ -574,9 +932,9 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     if (this.evacueeSessionService.isPaperBased) {
       return this.stepSupportsService?.supportDetails?.toTime ? this.stepSupportsService?.supportDetails?.toTime : '';
     } else {
-      return this.stepSupportsService?.supportDetails?.toTime
+      return this.stepSupportsService?.supportDetails?.toTime && !this.cloneFlag
         ? this.stepSupportsService?.supportDetails?.toTime
-        : this.currentTime;
+        : this.setDefaultTimes();
     }
   }
 
@@ -585,17 +943,40 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
    */
   private createSupportDetailsForm(): void {
     this.supportDetailsForm = this.formBuilder.group({
-      fromDate: [this.setFromDate(), [this.customValidation.validDateValidator(), Validators.required]],
-      fromTime: [this.setFromTime(), [Validators.required]],
+      fromDate: [
+        this.setFromDate(),
+        [
+          this.customValidation.validDateValidator(),
+          Validators.required,
+          this.compareTaskDateTimeValidator({
+            controlType: 'date',
+            other: 'fromTime'
+          })
+        ]
+      ],
+      fromTime: [
+        this.setFromTime(),
+        [Validators.required, this.compareTaskDateTimeValidator({ controlType: 'time', other: 'fromDate' })]
+      ],
       noOfDays: [
         this.stepSupportsService?.supportDetails?.noOfDays ? this.stepSupportsService?.supportDetails?.noOfDays : '',
         [Validators.required]
       ],
       toDate: [
         this.stepSupportsService?.supportDetails?.toDate ? this.stepSupportsService?.supportDetails?.toDate : '',
-        [this.customValidation.validDateValidator(), Validators.required]
+        [
+          this.customValidation.validDateValidator(),
+          Validators.required,
+          this.compareTaskDateTimeValidator({
+            controlType: 'date',
+            other: 'toTime'
+          })
+        ]
       ],
-      toTime: [this.setToTime(), [Validators.required]],
+      toTime: [
+        this.setToTime(),
+        [Validators.required, this.compareTaskDateTimeValidator({ controlType: 'time', other: 'toDate' })]
+      ],
       members: this.formBuilder.array([], [this.customValidation.memberCheckboxValidator()]),
       referral: this.supportDetailsService.generateDynamicForm(this.stepSupportsService?.supportTypeToAdd?.value),
       paperSupportNumber: [
@@ -670,7 +1051,6 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
     this.supportDetailsForm
       .get('paperSupportNumber')
       .setValidators([
-        this.customValidation.userNameExistsValidator(filteredReferrals.length > 0).bind(this.customValidation),
         this.customValidation
           .conditionalValidation(
             () => this.evacueeSessionService.isPaperBased,
@@ -689,5 +1069,21 @@ export class SupportDetailsComponent implements OnInit, OnDestroy {
           .bind(this.customValidation)
       ]);
     this.supportDetailsForm.get('paperSupportNumber').updateValueAndValidity();
+  }
+
+  private isTimeBetween(time, from, to) {
+    // Split the times into hours, minutes, and seconds
+    const [hours, minutes, seconds] = time.split(':').map(Number);
+    const [fromHours, fromMinutes, fromSeconds] = from.split(':').map(Number);
+    const [toHours, toMinutes, toSeconds] = to.split(':').map(Number);
+    // Create Date objects for both times
+    const imputTime = new Date();
+    imputTime.setHours(hours, minutes, seconds ? seconds : 0);
+    const fromTime = new Date();
+    fromTime.setHours(fromHours, fromMinutes, fromSeconds);
+    const toTime = new Date();
+    toTime.setHours(toHours, toMinutes, toSeconds);
+    //Compare the times
+    return imputTime >= fromTime && imputTime <= toTime;
   }
 }

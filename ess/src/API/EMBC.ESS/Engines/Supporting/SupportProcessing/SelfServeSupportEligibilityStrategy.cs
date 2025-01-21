@@ -72,7 +72,7 @@ internal class SelfServeSupportEligibilityStrategy(IEssContextFactory essContext
         // calculate support eligibility period
         var eligibleFrom = DateTimeOffset.UtcNow;
         var eligibleTo = eligibleFrom.Add(SupportsPeriod);
-        if (eligibleTo > task.era_taskenddate) eligibleTo = task.era_taskenddate.Value.ToUniversalTime();
+        if (eligibleTo > task.era_taskenddate) eligibleTo = task.era_taskenddate.Value;
 
         var needs = GetIdentifiedNeeds(currentNeedsAssessment).ToArray();
 
@@ -96,10 +96,10 @@ internal class SelfServeSupportEligibilityStrategy(IEssContextFactory essContext
         }
 
         // filter supports enabled for extensions
-        var oneTimeSupportTypes = GetOnetimeEnabledSupportTypesForTask(task).Cast<int>().ToArray();
+        var oneTimeSupportTypes = GetOnetimeEnabledSupportTypesForTask(task).SelectMany(s => GetMatchingTypesByCategory(s)).Distinct().Cast<int>().ToArray();
         var oneTimeReceivedSupportTypes = (await currentNeedsAssessment.era_era_householdmember_era_needassessment
             .SelectManyAsync(async hm => await GetPreviousOnetimeSupportsForHouseholdMember(ctx, hm, oneTimeSupportTypes, task.era_taskstartdate.Value, ct)))
-            .Select(s => s.era_supporttype).Cast<SupportType>().Distinct().ToList();
+            .Select(s => s.era_supporttype).Cast<SupportType>().SelectMany(s => GetMatchingTypesByCategory(s)).Distinct().ToList();
 
         var receivedSupportTypes = receivedSupports.Select(s => s.era_supporttype).Distinct().Cast<SupportType>().ToArray();
         receivedSupportTypes = receivedSupportTypes.Concat(oneTimeReceivedSupportTypes).Distinct().ToArray();
@@ -120,12 +120,12 @@ internal class SelfServeSupportEligibilityStrategy(IEssContextFactory essContext
         }
 
         // check if household member composition changed from the last needs assessment
-        var previousNeedsAssessment = ctx.era_needassessments
+        var initialNeedsAssessment = ctx.era_needassessments
             .Expand(na => na.era_era_householdmember_era_needassessment)
-            .Where(na => na.era_needassessmentid != currentNeedsAssessment.era_needassessmentid && na.era_EvacuationFile.era_evacuationfileid == file.era_evacuationfileid).OrderByDescending(na => na.createdon).FirstOrDefault();
-        if (previousNeedsAssessment != null)
+            .Where(na => na.era_needassessmentid != currentNeedsAssessment.era_needassessmentid && na.era_EvacuationFile.era_evacuationfileid == file.era_evacuationfileid).OrderBy(na => na.createdon).FirstOrDefault();
+        if (initialNeedsAssessment != null)
         {
-            if (previousNeedsAssessment.era_era_householdmember_era_needassessment.Count < currentNeedsAssessment.era_era_householdmember_era_needassessment.Count)
+            if (initialNeedsAssessment.era_era_householdmember_era_needassessment.Count < currentNeedsAssessment.era_era_householdmember_era_needassessment.Count)
             {
                 // current needs assessment has more household members than previous needs assessment
                 return NotEligible("Current needs assessment has more household members from the previous needs asessment",
@@ -134,7 +134,7 @@ internal class SelfServeSupportEligibilityStrategy(IEssContextFactory essContext
 #pragma warning disable S3267 // Loops should be simplified with "LINQ" expressions
             foreach (var householdMember in currentNeedsAssessment.era_era_householdmember_era_needassessment)
             {
-                var previouseHouseholdMember = previousNeedsAssessment.era_era_householdmember_era_needassessment.SingleOrDefault(hm => hm.era_householdmemberid == householdMember.era_householdmemberid);
+                var previouseHouseholdMember = initialNeedsAssessment.era_era_householdmember_era_needassessment.SingleOrDefault(hm => hm.era_householdmemberid == householdMember.era_householdmemberid);
                 if (previouseHouseholdMember == null)
                 {
                     // not found in previous needs assessment
@@ -333,6 +333,19 @@ internal class SelfServeSupportEligibilityStrategy(IEssContextFactory essContext
             .Where(s => s.era_era_householdmember_era_evacueesupport.Any(h => h.era_dateofbirth == hm.era_dateofbirth && h.era_firstname == hm.era_firstname && h.era_lastname == hm.era_lastname))
             .Where(s => s.era_Task.era_taskenddate >= taskStartDate)
             .GetAllPagesAsync(ct);
+    }
+
+    private static IEnumerable<SupportType> GetMatchingTypesByCategory(SupportType supportType)
+    {
+        switch (supportType)
+        {
+            case SupportType.FoodGroceries:
+            case SupportType.FoodRestaurant:
+                return new[] { SupportType.FoodGroceries, SupportType.FoodRestaurant };
+
+            default:
+                return new[] { supportType };
+        }
     }
 
     private static (SupportType[] unusedSupportTypes, SupportType[] onetimeUsedSupportTypes) MapEligibleSupportTypesByUsage(SupportType[] eligibleSupportTypes, SupportType[] receivedSupportTypes, SupportType[] enabledSupportTypesForExtensions)

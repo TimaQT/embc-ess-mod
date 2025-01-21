@@ -93,7 +93,7 @@ namespace EMBC.Tests.Integration.ESS.Resources
             };
             var files = (await evacuationRepository.Query(caseQuery)).Items.ToArray();
             files.ShouldNotBeEmpty();
-            files.ShouldAllBe(f => f.NeedsAssessment.Pets.Count() > 0);
+            files.ShouldAllBe(f => f.NeedsAssessment.Pets.Any());
         }
 
         [Fact]
@@ -253,6 +253,8 @@ namespace EMBC.Tests.Integration.ESS.Resources
                     householdMember.HasAccessRestriction.ShouldBeNull();
                     householdMember.IsVerifiedRegistrant.ShouldBeNull();
                 }
+                householdMember.Email.ShouldBe(originalHouseholdMember.Email);
+                householdMember.Phone.ShouldBe(originalHouseholdMember.Phone);
             }
             needsAssessment.Pets.Count().ShouldBe(originalNeedsAssessment.Pets.Count());
             for (var j = 0; j < originalNeedsAssessment.Pets.Count(); j++)
@@ -303,6 +305,44 @@ namespace EMBC.Tests.Integration.ESS.Resources
             eligibility.From.ShouldNotBeNull();
             eligibility.To.ShouldNotBeNull();
             eligibility.SupportSettings.ShouldBe(cmd.EligibleSupports, ignoreOrder: true);
+        }
+
+        [Fact]
+        public async Task GetEligibilityCheck_NeedsAssessmentUpdated_ReturnsCorrect()
+        {
+            var fileId = TestData.EvacuationFileId;
+            var taskNumber = TestData.SelfServeActiveTaskId;
+            var from = DateTimeOffset.Now;
+            var to = from.AddHours(72);
+            var cmd = new AddEligibilityCheck
+            {
+                Eligible = true,
+                EvacuationFileNumber = fileId,
+                TaskNumber = taskNumber,
+                From = from,
+                To = to,
+                Reason = "Test",
+                HomeAddressReferenceId = null,
+                EligibleSupports =
+                [
+                    new SelfServeSupportSetting(SelfServeSupportType.Clothing, SelfServeSupportEligibilityState.NotAvailableOneTimeUsed),
+                    new SelfServeSupportSetting(SelfServeSupportType.Incidentals, SelfServeSupportEligibilityState.Available),
+                    new SelfServeSupportSetting(SelfServeSupportType.ShelterAllowance, SelfServeSupportEligibilityState.Available),
+                    new SelfServeSupportSetting(SelfServeSupportType.FoodRestaurant, SelfServeSupportEligibilityState.Available),
+                    new SelfServeSupportSetting(SelfServeSupportType.FoodGroceries, SelfServeSupportEligibilityState.Available)
+                ],
+            };
+
+            var response = await evacuationRepository.Manage(cmd);
+            response.Id.ShouldNotBeNull();
+
+            var file = (await evacuationRepository.Query(new EvacuationFilesQuery { FileId = fileId })).Items.ShouldHaveSingleItem();
+            file.NeedsAssessment.EligibilityCheck.ShouldNotBeNull();
+
+            await evacuationRepository.Manage(new SubmitEvacuationFileNeedsAssessment { EvacuationFile = file });
+
+            var updatedFile = (await evacuationRepository.Query(new EvacuationFilesQuery { FileId = fileId })).Items.ShouldHaveSingleItem();
+            updatedFile.NeedsAssessment.EligibilityCheck.ShouldBeNull();
         }
 
         [Fact]
@@ -364,47 +404,47 @@ namespace EMBC.Tests.Integration.ESS.Resources
                     },
                     Type = NeedsAssessmentType.Preliminary,
                     Insurance = InsuranceOption.Yes,
-                    Needs = new[] { IdentifiedNeed.Food, IdentifiedNeed.Transportation, IdentifiedNeed.ShelterReferral },
-                    HouseholdMembers = new[]
+                    Needs = [IdentifiedNeed.Food, IdentifiedNeed.Transportation, IdentifiedNeed.ShelterReferral],
+                    HouseholdMembers =
+                    [
+                        new HouseholdMember
                         {
-                            new HouseholdMember
-                            {
-                                FirstName = primaryContact.FirstName,
-                                LastName = primaryContact.LastName,
-                                Initials = primaryContact.Initials,
-                                Gender = primaryContact.Gender,
-                                DateOfBirth = primaryContact.DateOfBirth,
-                                IsMinor = false,
-                                IsPrimaryRegistrant = true,
-                                LinkedRegistrantId = primaryContact.Id,
-                                HasAccessRestriction = false,
-                                IsVerifiedRegistrant = true
-                            },
-                            new HouseholdMember
-                            {
-                                FirstName = $"{uniqueSignature}_hm1",
-                                LastName = "hm1",
-                                Initials = $"{uniqueSignature}_1",
-                                Gender = "Female",
-                                DateOfBirth = "03/11/2000",
-                                IsMinor = false,
-                                IsPrimaryRegistrant = false
-                            },
-                             new HouseholdMember
-                            {
-                                FirstName = $"{uniqueSignature}_hm2",
-                                LastName = "hm2",
-                                Initials = $"{uniqueSignature}_2",
-                                Gender = "Male",
-                                DateOfBirth = "03/12/2010",
-                                IsMinor = true,
-                                IsPrimaryRegistrant = false
-                            }
+                            FirstName = primaryContact.FirstName,
+                            LastName = primaryContact.LastName,
+                            Initials = primaryContact.Initials,
+                            Gender = primaryContact.Gender,
+                            DateOfBirth = primaryContact.DateOfBirth,
+                            IsMinor = false,
+                            IsPrimaryRegistrant = true,
+                            LinkedRegistrantId = primaryContact.Id,
+                            HasAccessRestriction = false,
+                            IsVerifiedRegistrant = true
                         },
-                    Pets = new[]
+                        new HouseholdMember
                         {
-                            new Pet{ Type = $"{uniqueSignature}_Cat", Quantity = "1" }
+                            FirstName = $"{uniqueSignature}_hm1",
+                            LastName = "hm1",
+                            Initials = $"{uniqueSignature}_1",
+                            Gender = "Female",
+                            DateOfBirth = "03/11/2000",
+                            IsMinor = false,
+                            IsPrimaryRegistrant = false,
+                            Phone = "123-123-1234",
+                            Email = "hm1@test"
+                        },
+                            new HouseholdMember
+                        {
+                            FirstName = $"{uniqueSignature}_hm2",
+                            LastName = "hm2",
+                            Initials = $"{uniqueSignature}_2",
+                            Gender = "Male",
+                            DateOfBirth = "03/12/2010",
+                            IsMinor = true,
+                            IsPrimaryRegistrant = false,
+                            Email = "hm2@test"
                         }
+                    ],
+                    Pets = [new Pet { Type = $"{uniqueSignature}_Cat", Quantity = "1" }]
                 }
             };
             return file;

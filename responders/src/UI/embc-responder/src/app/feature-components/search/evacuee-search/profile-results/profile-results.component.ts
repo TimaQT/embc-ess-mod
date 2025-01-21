@@ -86,19 +86,6 @@ export class ProfileResultsComponent implements OnChanges, AfterViewInit {
    * @param selectedRegistrant selected profile
    */
   async openProfile(selectedRegistrant: RegistrantProfileSearchResultModel) {
-    const shouldProceed = await firstValueFrom(
-      this.dialog
-        .open<AccessReasonGateDialogComponent, AccessReasonData, boolean>(AccessReasonGateDialogComponent, {
-          data: {
-            accessEntity: 'profile',
-            entityId: selectedRegistrant.id
-          }
-        })
-        .afterClosed()
-    );
-
-    if (!shouldProceed) return;
-
     if (
       this.evacueeSessionService.isPaperBased &&
       !this.evacueeSearchService.evacueeSearchContext.hasShownIdentification
@@ -107,6 +94,9 @@ export class ProfileResultsComponent implements OnChanges, AfterViewInit {
     } else {
       this.profileResultsService.updateProfile(selectedRegistrant);
       if (this.evacueeSearchService.evacueeSearchContext.hasShownIdentification) {
+        const shouldProceed = await this.openAccessReasonGateDialog(selectedRegistrant);
+
+        if (!shouldProceed) return;
         this.router.navigate(['responder-access/search/evacuee-profile-dashboard']);
       } else {
         this.profileResultsService.setloadingOverlay(true);
@@ -120,7 +110,10 @@ export class ProfileResultsComponent implements OnChanges, AfterViewInit {
               } else {
                 this.profileSecurityQuestionsService.shuffleSecurityQuestions(results?.questions);
                 this.evacueeSessionService.securityQuestionsOpenedFrom = 'responder-access/search/evacuee';
-                setTimeout(() => {
+                setTimeout(async () => {
+                  const shouldProceed = await this.openAccessReasonGateDialog(selectedRegistrant);
+
+                  if (!shouldProceed) return;
                   this.router.navigate(['responder-access/search/security-questions']);
                 }, 200);
               }
@@ -135,6 +128,19 @@ export class ProfileResultsComponent implements OnChanges, AfterViewInit {
     }
   }
 
+  async openAccessReasonGateDialog(selectedRegistrant: RegistrantProfileSearchResultModel) {
+    return firstValueFrom(
+      this.dialog
+        .open<AccessReasonGateDialogComponent, AccessReasonData, boolean>(AccessReasonGateDialogComponent, {
+          data: {
+            accessEntity: 'profile',
+            entityId: selectedRegistrant.id
+          }
+        })
+        .afterClosed()
+    );
+  }
+
   /**
    * Returns community name
    *
@@ -142,6 +148,6 @@ export class ProfileResultsComponent implements OnChanges, AfterViewInit {
    * @returns community name
    */
   communityName(address: AddressModel): string {
-    return (address.community as Community).name;
+    return (address.community as Community)?.name;
   }
 }

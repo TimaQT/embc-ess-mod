@@ -300,8 +300,8 @@
           </div>
           <div class="col-md-9">
             <p>
-              You have given your consent for Emergency Management British Columbia and your Local Emergency Program to
-              communicate with you by email or phone regarding your emergency situation.
+              You have given your consent for Ministry of Emergency Management and Climate Readiness and your Local
+              Emergency Program to communicate with you by email or phone regarding your emergency situation.
             </p>
           </div>
         </div>
@@ -490,6 +490,16 @@
               <div class="row info-detail">
                 <div class="col-md-3">Date of Birth:</div>
                 <div class="col-md-3">{{ member.dateOfBirth | customDate }}</div>
+              </div>
+              <div class="row info-detail">
+                <div class="col-md-3">Contact:</div>
+                <div class="col-md-3">
+                  {{ member.phone }}
+                  @if (member.phone) {
+                    <br />
+                  }
+                  {{ member.email }}
+                </div>
               </div>
               <br />
             }

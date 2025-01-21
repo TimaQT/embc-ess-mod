@@ -163,10 +163,8 @@
         <mat-error>Acknowledgment is required</mat-error>
       }
       <mat-checkbox [formControl]="reviewAcknowledgeForm.controls.meetMyOwnNeeds">
-        I acknowledge that by accepting this digital payment, I am able to meet my own needs and will not seek further
-        supports during the valid timeframe of
-        <b>{{ eligibilityCheck?.from ? moment(eligibilityCheck?.from)?.format('MMM D YYYY') : '' }}</b> to
-        <b>{{ eligibilityCheck?.to ? moment(eligibilityCheck?.to)?.format('MMM D YYYY') : '' }}</b
+        I acknowledge that by accepting this digital payment, I will not seek further supports between now and
+        <b>{{ eligibilityCheck?.to ? moment(eligibilityCheck?.to)?.format('MMM D YYYY, h:mm a') : '' }}</b
         >.
       </mat-checkbox>
       @if (
@@ -185,6 +183,18 @@
         reviewAcknowledgeForm.controls.information.hasError('required')
       ) {
         <mat-error>Acknowledgment is required</mat-error>
+      }
+      @if (shelterAllowanceSelected()) {
+        <mat-checkbox [formControl]="reviewAcknowledgeForm.controls.shelterAllowance">
+          I confirm that neither I, nor anyone living with me, have received a Shelter Allowance or referral for the
+          timeframe noted on this file.
+        </mat-checkbox>
+        @if (
+          reviewAcknowledgeForm.controls.shelterAllowance.touched &&
+          reviewAcknowledgeForm.controls.shelterAllowance.hasError('required')
+        ) {
+          <mat-error>Acknowledgment is required</mat-error>
+        }
       }
 
       <div

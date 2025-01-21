@@ -60,7 +60,9 @@ export const billeting = {
 };
 
 export const shelterAllowanceRate = {
-  rate: 200
+  rate: 200,
+  rateOverMaxMembers: 400,
+  maxMembers: 5
 };
 
 export const noOfRooms = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
@@ -110,7 +112,7 @@ export const incidentalsRateSheet: DialogContent = {
   title: '<b>ESS Rate Sheet - <span class="dialog-title">Incidentals</span></b>',
   text: `<p>To be issued when evacuees have been unable to pack necessities</p><p class="primary">Adults, youth & children - <span class="bold">up to \$${incidentals.rate.toFixed(
     2
-  )} maximum per person (incl. PST)</span></p><div>NOTE:</div><p>May include miscellaneous items such as personal hygiene products, laundry supplies, pet food and shelter, medication for a 3 day period, and other immediate needs as required. The Emergency Management BC (EMBC) Emergency Coordination Centre must be consulted when extraordinary requirements are needed to provide for immediate needs 1-800-663-3456</p>`,
+  )} maximum per person (incl. PST)</span></p><div>NOTE:</div><p>May include miscellaneous items such as personal hygiene products, laundry supplies, pet food and shelter, medication for a 3 day period, and other immediate needs as required. The Ministry of Emergency Management and Climate Readiness (EMCR) Emergency Coordination Centre must be consulted when extraordinary requirements are needed to provide for immediate needs 1-800-663-3456</p>`,
   cancelButton: 'Close'
 };
 
@@ -144,7 +146,7 @@ export const hotelRateSheet: DialogContent = {
 
 export const needsShelterAllowanceRateSheet: DialogContent = {
   title: '<b>ESS Rate Sheet - <span class="dialog-title">Shelter Allowance</span></b>',
-  text: '<p>To be issued when evacuees want to source their own shelter whilst evacuated.</p></br><p><span class="bold">$200 per night</span> per household</p>',
+  text: '<p>To be issued when evacuees want to source their own shelter whilst evacuated.</p></br><p><span class="bold">$200 per night</span> per household of 1 to 5 members</p><p><span class="bold">$400 per night</span> per household of 6 or more members</p>',
   cancelButton: 'Close'
 };
 
@@ -186,7 +188,7 @@ export const duplicateSupportMessage: DialogContent = {
 
 export const needsShelterAllowanceMessage: DialogContent = {
   title: 'Shelter',
-  text: '<p>A shelter allowance of $200 per night per household.</p></br><p>The shelter allowance can be provided to eligible evacuees via e-Transfer.</p>'
+  text: '<p>A shelter allowance of $200 per night per household of 1 to 5 members.</p><p>A shelter allowance of $400 per night per household of 6 or more members.</p></br><p>The shelter allowance can be provided to eligible evacuees via e-Transfer.</p>'
 };
 
 export const needsShelterReferralMessage: DialogContent = {
@@ -344,6 +346,12 @@ export const newRegWizardEssFileCreatedMessage: DialogContent = {
   exitLink: 'Exit Wizard'
 };
 
+export const addCaseNotesMessage: DialogContent = {
+  text: '<p>Would you like to <strong>add case notes</strong> before exiting the wizard?</p>',
+  confirmButton: 'Yes, Add Case Notes',
+  cancelButton: 'No, Exit Wizard'
+};
+
 export const newRegWizardProfileUpdatedMessage: DialogContent = {
   title: 'Evacuee Profile Updated',
   text: '<p>Evacuee profile has been successfully updated.</p>',
@@ -495,6 +503,13 @@ export const supplierStatusDefinition: DialogContent = {
   cancelButton: 'Close'
 };
 
+export const caseProfileNotesWarning: DialogContent = {
+  title: 'Important Case Notes',
+  text: '<p><strong>This file contains important case notes.</strong></p><p>Review these notes carefully to understand key details and promptly address any necessary actions or follow-ups.</p>',
+  cancelButton: 'Close',
+  confirmButton: 'View Case Notes'
+};
+
 export const systemError = 'The service is temporarily unavailable. Please try again later';
 export const accessError = 'Access Denied';
 export const genericError = 'An error occurred while loading this page. Please refresh and try again.';
@@ -630,7 +645,7 @@ export const caseNotesCompleteText: DashboardBanner = {
 
 export const shelterAllowanceNeedDialog: DialogContent = {
   title: 'Shelter',
-  text: '<p>A shelter allowance of $200 per night per household.</p> <br/>The shelter allowance can be provided to eligible evacuees via e-Transfer.'
+  text: '<p>A shelter allowance of $200 per night per household of 1 to 5 members.</p><p>A shelter allowance of $400 per night per household of 6 or more members.</p> <br/>The shelter allowance can be provided to eligible evacuees via e-Transfer.'
 };
 
 export const shelterReferralNeedDialog: DialogContent = {
@@ -641,6 +656,13 @@ export const shelterReferralNeedDialog: DialogContent = {
 export const incidentalsNeedDialog: DialogContent = {
   title: 'Incidentals',
   text: 'Incidentals could include items such as personal hygiene products like toothpaste, laundry soap and/or pet food.'
+};
+
+export const duplicateHouseholdMemberWarning: DialogContent = {
+  title: '<b>Duplicate Household Member Detected</b>',
+  text: `<p>It looks like the member you are trying to add already exists in the household.</p>
+  <p>Please review the existing members before proceeding.</p>`,
+  cancelButton: 'Close'
 };
 
 export const noAssistanceRequired = 'Household currently does not require assistance.';

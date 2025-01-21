@@ -66,15 +66,34 @@
       <mat-checkbox formControlName="processEvacueeCert"
         >Evacuee confirms they understand the above statement.
       </mat-checkbox>
-      <mat-error
-        class="custom-mat-error"
-        *ngIf="
-          referralFormControl?.processEvacueeCert.invalid &&
-          referralFormControl?.processEvacueeCert.hasError('required')
-        "
-      >
-        Required</mat-error
-      >
+      @if (
+        referralFormControl?.processEvacueeCert.invalid && referralFormControl?.processEvacueeCert.hasError('required')
+      ) {
+        <mat-error class="custom-mat-error"> Required</mat-error>
+      }
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <p>
+        I confirm that neither I, nor anyone living with me, has received a Shelter Allowance or referral for the
+        timeframe noted on this file.
+      </p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-8 accept-box">
+      <mat-checkbox formControlName="processEvacueeCert2"
+        >Evacuee confirms they understand the above statement.
+      </mat-checkbox>
+      @if (
+        referralFormControl?.processEvacueeCert2.invalid &&
+        referralFormControl?.processEvacueeCert2.hasError('required')
+      ) {
+        <mat-error class="custom-mat-error"> Required</mat-error>
+      }
     </div>
   </div>
 </form>
