@@ -234,6 +234,12 @@ public record Support
     [Display(Name = "Sub Support Type")]
     public string SubSupportType { get; set; }
 
+    [Display(Name = "Support Status")]
+    public string SupportStatus { get; set; }
+
+    [Display(Name = "Support Status Reason")]
+    public string SupportStatusReason { get; set; }
+
     [Display(Name = "Support Delivery Type")]
     public string SupportDeliveryType { get; set; }
 
@@ -257,6 +263,9 @@ public record Support
 
     [Display(Name = "Total Amount")]
     public decimal TotalAmount { get; set; }
+
+    [Display(Name = "Payee")]
+    public string Payee { get; set; }
 
     [Display(Name = "Breakfasts per Person")]
     public string Breakfasts { get; set; }
