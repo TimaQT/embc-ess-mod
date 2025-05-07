@@ -128,7 +128,7 @@ namespace EMBC.ESS.Resources.Supports
 
                         // If the similarity is above 70%, consider the support a potential duplicate
                         var combinedScore = (firstNameSimilarity + lastNameSimilarity) / 2;
-                        if (combinedScore >= 0.7)
+                        if (combinedScore >= 1)
                         {
                             lock (lockObj)
                             {
