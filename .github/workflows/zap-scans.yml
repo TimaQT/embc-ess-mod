@@ -18,7 +18,7 @@ jobs:
           artifact_name: "respondersuizapscan"
           issue_title: "respondersuizapscan"
       - name: API
-        uses: zaproxy/action-api-scan@v0.9.0
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           target: "https://dev-prj-era-responders.apps.silver.devops.gov.bc.ca/api/swagger/v1/swagger.json"
@@ -36,7 +36,7 @@ jobs:
           artifact_name: "registrantsuizapscan"
           issue_title: "registrantsuizapscan"
       - name: API
-        uses: zaproxy/action-api-scan@v0.9.0
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           target: "https://dev-prj-era-evacuees.apps.silver.devops.gov.bc.ca/api/swagger/v1/swagger.json"
@@ -54,7 +54,7 @@ jobs:
           artifact_name: "suppliersuizapscan"
           issue_title: "suppliersuizapscan"
       - name: API
-        uses: zaproxy/action-api-scan@v0.9.0
+        uses: zaproxy/action-api-scan@v0.10.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           target: "https://dev-prj-era-suppliers.apps.silver.devops.gov.bc.ca/api/swagger/v1/swagger.json"
